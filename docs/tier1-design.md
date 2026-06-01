@@ -32,7 +32,8 @@ modelling the network, voltage, or reactive power.
 - A governor deadband (about plus or minus 15 mHz) so governors ignore tiny wobble.
 - Participation factors summing to 1: high for gas, hydro, and BESS, near zero for
   nuclear.
-- Ramp-rate limits per fuel type.
+- Ramp-rate limits per fuel type, applied to the secondary (AGC) dispatch rather
+  than to the fast primary response (which is limited by the governor time constant).
 - AGC as a PI loop on the area control error (here just the frequency error) with
   anti-windup and a realistic update interval.
 
@@ -65,8 +66,9 @@ target restoration time rather than hand-tuned:
 1. Scaffold and baseline RK4 model.
 2. Per-unit and Hz scaling, validate the offset against the formula.
 3. Multi-unit GB mix.
-4. Ramp limits and governor deadband.
-5. AGC: PI plus participation plus anti-windup, set Ki.
+4. Governor deadband.
+5. AGC: PI plus participation, with ramp limits and anti-windup on the secondary
+   dispatch; set Ki.
 6. Gen-trip scenario and before and after CSV.
 7. Recovery plots.
 8. Tests.

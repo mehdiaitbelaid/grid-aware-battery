@@ -9,8 +9,10 @@ State vector is [df, dPm_0, ..., dPm_{N-1}], all per-unit on the system base:
     df       per-unit frequency deviation
     dPm_i    per-unit mechanical power deviation of generator i
 
-This reduces exactly to gridsim.model.SingleAreaLFC when given one aggregate unit.
-Ramp limits and secondary control (AGC) are added in later commits.
+A governor deadband models real governors ignoring tiny frequency error.
+This reduces exactly to gridsim.model.SingleAreaLFC when given one aggregate unit
+with the deadband switched off. Secondary control (AGC) with ramp limits and
+anti-windup is added in a later commit.
 """
 from __future__ import annotations
 
@@ -30,6 +32,7 @@ class PowerSystem:
     f_nom: float = 50.0          # nominal frequency [Hz]
     s_base_mw: float = 30000.0   # system base power [MW]
     dt: float = 0.01             # integration step [s]
+    deadband_hz: float = 0.015   # governor deadband [Hz] (GB primary response ~15 mHz)
 
     @property
     def H_sys(self) -> float:
@@ -48,13 +51,24 @@ class PowerSystem:
         """System frequency response characteristic: sum of droop gains plus damping."""
         return sum(self.droop_gain(g) for g in self.generators) + self.D
 
+    def _deadband(self, df_pu: float) -> float:
+        """Governor deadband: ignore errors within the band, subtract it beyond."""
+        if self.deadband_hz <= 0.0:
+            return df_pu
+        db = self.deadband_hz / self.f_nom
+        if abs(df_pu) <= db:
+            return 0.0
+        return df_pu - np.sign(df_pu) * db
+
     def derivatives(self, y: np.ndarray, dp_pu: float) -> np.ndarray:
         df = y[0]
         pm = y[1:]
+        df_droop = self._deadband(df)          # governors see the deadbanded error
+        # load damping responds to the full error; only droop sees the deadband
         ddf = (1.0 / (2.0 * self.H_sys)) * (pm.sum() - dp_pu - self.D * df)
         dpm = np.empty(len(self.generators))
         for i, g in enumerate(self.generators):
-            dpm[i] = (1.0 / g.Tg) * (-pm[i] - self.droop_gain(g) * df)
+            dpm[i] = (1.0 / g.Tg) * (-pm[i] - self.droop_gain(g) * df_droop)
         return np.concatenate(([ddf], dpm))
 
     def rk4_step(self, y: np.ndarray, dp_pu: float) -> np.ndarray:
@@ -82,6 +96,6 @@ class PowerSystem:
         return t, f
 
     def steady_state_offset_hz(self, loss_mw: float) -> float:
-        """Analytic droop offset (Hz) for this mix: -loss_pu / beta, in Hz."""
+        """Analytic droop offset (Hz) ignoring the deadband: -loss_pu / beta, in Hz."""
         dp_pu = loss_mw / self.s_base_mw
         return self.f_nom * (-dp_pu / self.beta)
