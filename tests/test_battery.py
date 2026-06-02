@@ -1,7 +1,10 @@
 """Tests for the battery arbitrage optimiser."""
 import os
 
-from battery import BatteryParams, load_prices, solve_arbitrage
+import numpy as np
+
+from battery import (BatteryParams, load_prices, persistence, same_hour_average,
+                     solve_arbitrage)
 
 DATA = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                     "data", "caseB_grid_battery_market_hourly.csv")
@@ -26,3 +29,16 @@ def test_window_solve_respects_start_soc():
     res = solve_arbitrage(p_da[:24], BatteryParams(), e_start=500.0)
     assert abs(res["soc_kwh"][0] - 500.0) < 1e-6
     assert res["profit_gbp"] >= -1e-6
+
+
+def test_realistic_forecasts_have_no_future_leakage():
+    """A forecast made at hour h must depend only on prices strictly before h.
+    Corrupt every price from h onward; the forecast must be unchanged."""
+    _, p = load_prices(DATA)
+    for forecast in (same_hour_average, persistence):
+        for h in (0, 1, 30, 200, 1000):
+            f_clean = forecast(p, h)
+            p_corrupt = p.copy()
+            p_corrupt[h:] = -1.0e6                 # destroy the present and the future
+            f_corrupt = forecast(p_corrupt, h)
+            assert np.allclose(f_clean, f_corrupt), f"{forecast.__name__} leaks future at h={h}"
