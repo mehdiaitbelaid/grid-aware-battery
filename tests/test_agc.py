@@ -55,3 +55,17 @@ def test_anti_windup_limits_overshoot():
     ps = PowerSystem(agc=flexible_fast_agc())
     _, f = ps.simulate(duration=180.0, loss_mw=1320.0)
     assert f.max() < 50.05   # small overshoot at most, no runaway above nominal
+
+
+def test_agc_robust_across_trip_sizes():
+    """The AGC restores 50 Hz and stays above the 49.2 Hz floor across a range of trips;
+    the design case and smaller also meet the 30 s target."""
+    for loss in (500.0, 1000.0, 1320.0):
+        t, f = PowerSystem(agc=flexible_fast_agc()).simulate(duration=120.0, loss_mw=loss)
+        assert f.min() >= 49.2                              # holds above the floor
+        assert abs(f[-1] - 50.0) < 0.01                     # restores to nominal
+        assert recovery_time(t, f, trip_time=5.0) <= 30.0   # within the 30 s target
+    # the larger 1800 MW loss still restores and holds the floor (it may miss 30 s)
+    t, f = PowerSystem(agc=flexible_fast_agc()).simulate(duration=120.0, loss_mw=1800.0)
+    assert f.min() >= 49.2
+    assert abs(f[-1] - 50.0) < 0.01

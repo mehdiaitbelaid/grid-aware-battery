@@ -1,0 +1,79 @@
+# Tier 1 robustness and sensitivity
+
+Checks that the AGC result is real, not a single lucky case. Reproduce with
+`python make_tier1_validation.py` (writes the CSVs and the figure).
+
+## Robustness across trip sizes
+The controller is tuned on the 1320 MW design case and run unchanged at other disturbance
+sizes (`results/tier1_robustness.csv`, `plots/tier1_robustness.png`).
+
+| loss (MW) | nadir (Hz) | RoCoF (Hz/s) | recovery (s) | overshoot (mHz) | settles (Hz) | within 30 s | above 49.2 |
+|---|---|---|---|---|---|---|---|
+| 500 | 49.922 | -0.121 | 15.1 | 7.5 | 50.000 | yes | yes |
+| 1000 | 49.853 | -0.241 | 20.7 | 5.2 | 50.000 | yes | yes |
+| 1320 | 49.808 | -0.318 | 21.8 | 3.5 | 50.000 | yes | yes |
+| 1800 | 49.740 | -0.434 | 34.0 | 21.7 | 49.999 | no | yes |
+
+The AGC restores 50.000 Hz and stays above the 49.2 Hz floor for every case, and recovery
+scales sensibly with the disturbance. The design case and smaller losses meet the 30 s
+target with margin. The larger 1800 MW loss (a more severe secured-loss case than the
+controller was tuned for) still restores and holds the floor, but recovery slows to 34 s
+and overshoot grows: the expected degradation away from the design point. Meeting 30 s
+there would need a tighter T_agc or more fast reserve. It is stated as a known limitation,
+not hidden.
+
+## Gain sweep: why T_agc = 8 s and Kp = 0.10 * beta
+On the 1320 MW design trip (`results/tier1_gain_sweep.csv`).
+
+T_agc, with Kp = 0.10 * beta fixed:
+
+| T_agc (s) | Ki | recovery (s) | overshoot (mHz) |
+|---|---|---|---|
+| 6 | 2.54 | 27.1 | 27.3 |
+| 8 | 1.91 | 21.8 | 3.5 |
+| 10 | 1.52 | 29.9 | 2.9 |
+| 12 | 1.27 | 36.4 | 2.5 |
+
+T_agc = 8 s is the sweet spot: the fastest restoration that does not blow up overshoot.
+Tighter (6 s) is barely faster but overshoots about eight times as much; looser (10 to
+12 s) slows toward or past the 30 s target.
+
+Kp, with T_agc = 8 s fixed:
+
+| kp_fraction | Kp | recovery (s) | overshoot (mHz) |
+|---|---|---|---|
+| 0.00 | 0.00 | 32.0 | 8.5 |
+| 0.05 | 0.76 | 21.1 | 5.7 |
+| 0.10 | 1.53 | 21.8 | 3.5 |
+| 0.20 | 3.05 | 22.9 | 1.5 |
+
+The proportional leg is essential: with Kp = 0 (integral only) recovery is 32 s and misses
+the target. Any Kp in 0.05 to 0.20 fixes it; 0.10 * beta is a balanced choice, fast with
+small overshoot.
+
+## Ablation: what each piece buys
+On the 1320 MW trip (`results/tier1_ablation.csv`).
+
+| case | nadir (Hz) | recovery (s) | overshoot (mHz) | settles (Hz) |
+|---|---|---|---|---|
+| droop only (no AGC) | 49.801 | never | 0.0 | 49.842 |
+| AGC, no ramp limits | 49.817 | 20.9 | 6.9 | 50.000 |
+| AGC, with ramp limits | 49.808 | 21.8 | 3.5 | 50.000 |
+
+Droop alone parks at the offset and never returns (the bug Tier 1 fixes). Adding the AGC
+restores 50.000. Ramp limits cost about a second of speed but cut overshoot roughly in
+half, because the integral can no longer demand power faster than plant can deliver. That
+is the physical realism the ramp limits and anti-windup add.
+
+## Participation split (sums to 1)
+CCGT 0.45, Hydro/pumped 0.30, OCGT 0.15, Coal/biomass 0.10. Nuclear, wind, and
+interconnectors are 0. Fast flexible plant leads; baseload nuclear and inverter-based wind
+provide no secondary response.
+
+## Assumptions to cite
+- Design disturbance 1320 MW: a standard GB infeed-loss benchmark (larger secured-loss
+  cases exist; this is not described as the only possible largest loss).
+- Frequency limits: statutory 49.5 to 50.5 Hz, the largest credible loss must hold above
+  about 49.2 Hz, restoration target plus or minus 0.01 Hz within 30 s.
+- Plant parameters (capacities, inertia, droop, ramp rates) are representative values, to
+  be sourced against NESO or equivalent figures for a final submission.
