@@ -14,7 +14,7 @@ os.makedirs(RESULTS, exist_ok=True)
 os.makedirs(PLOTS, exist_ok=True)
 
 TRIP = 5.0
-df, m = run_gen_trip(loss_mw=1320.0, duration=60.0, trip_time=TRIP, t_agc=10.0)
+df, m = run_gen_trip(loss_mw=1320.0, duration=60.0, trip_time=TRIP, t_agc=8.0)
 
 csv_path = os.path.join(RESULTS, "tier1_gen_trip.csv")
 df.to_csv(csv_path, index=False)
@@ -35,8 +35,8 @@ ax.axvline(30.0, ls=":", color="purple", lw=1.2, alpha=0.7, label="30 s deadline
 ax.set_xlim(-3, 50)
 ax.set_xlabel("Time since trip (s)")
 ax.set_ylabel("Frequency (Hz)")
-ax.set_title("Tier 1: secondary control (AGC) restores 50.000 Hz after a 1320 MW trip\n"
-             f"GB high-wind mix: H_sys = {m['H_sys_s']:.2f} s, Ki = beta / T_agc = {m['Ki']:.2f}")
+ax.set_title("Tier 1: secondary control (AGC) returns frequency within +/-0.01 Hz after a 1320 MW trip\n"
+             f"GB high-wind mix: H_sys = {m['H_sys_s']:.2f} s, Ki = {m['Ki']:.2f}, Kp = {m['Kp']:.2f}")
 ax.legend(loc="lower right", fontsize=8.5)
 ax.grid(alpha=0.3)
 fig.tight_layout()

@@ -7,12 +7,12 @@ capacity-weighted sum of governing units' droop gains, plus load damping. A gove
 deadband models real governors ignoring tiny frequency error.
 
 Without an AGC the state is [df, dPm_0..dPm_{N-1}] (droop only). With an AGC two more
-blocks are appended: the integral command P_cmd and each unit's ramp-limited secondary
+blocks are appended: the integral command P_int and each unit's ramp-limited secondary
 dispatch a_0..a_{N-1}, all per-unit on the system base:
 
     df       per-unit frequency deviation
     dPm_i    per-unit mechanical power deviation of generator i
-    P_cmd    total commanded secondary power
+    P_int    integral part of the secondary power command
     a_i      secondary power actually dispatched to generator i (ramp limited)
 """
 from __future__ import annotations
@@ -76,7 +76,7 @@ class PowerSystem:
         df_droop = self._deadband(df)
 
         if self.agc is not None:
-            p_cmd = y[1 + n]
+            p_int = y[1 + n]
             a = y[2 + n:2 + 2 * n]
         else:
             a = np.zeros(n)
@@ -92,20 +92,22 @@ class PowerSystem:
         if self.agc is None:
             return np.concatenate(([ddf], dpm))
 
-        # secondary loop: integrate the error, with back-calculation anti-windup
+        # secondary loop: PI command, with back-calculation anti-windup on the integral
         ki = self.agc.ki(self.beta)
+        kp = self.agc.kp(self.beta)
         a_total = a.sum()
-        dp_cmd = ki * (-df) + (1.0 / self.agc.t_aw) * (a_total - p_cmd)
+        p_secondary = p_int + kp * (-df)
+        dp_int = ki * (-df) + (1.0 / self.agc.t_aw) * (a_total - p_secondary)
 
         # each unit moves toward its share, capped by its ramp limit
         da = np.empty(n)
         for i, g in enumerate(self.generators):
-            target = self.agc.share(g.name) * p_cmd
+            target = self.agc.share(g.name) * p_secondary
             ramp = self.ramp_pu_per_s(g)
             rate = (target - a[i]) / self.agc.t_actuator
             da[i] = float(np.clip(rate, -ramp, ramp))
 
-        return np.concatenate(([ddf], dpm, [dp_cmd], da))
+        return np.concatenate(([ddf], dpm, [dp_int], da))
 
     def rk4_step(self, y: np.ndarray, dp_pu: float) -> np.ndarray:
         k1 = self.derivatives(y, dp_pu)

@@ -24,7 +24,7 @@ def recovery_time(t: np.ndarray, f: np.ndarray, trip_time: float,
 
 
 def run_gen_trip(loss_mw: float = 1320.0, duration: float = 60.0,
-                 trip_time: float = 5.0, t_agc: float = 10.0):
+                 trip_time: float = 5.0, t_agc: float = 8.0):
     """Run the baseline and AGC responses to a generation trip.
 
     Returns (DataFrame[time_s, freq_baseline_hz, freq_agc_hz], metrics dict).
@@ -46,6 +46,8 @@ def run_gen_trip(loss_mw: float = 1320.0, duration: float = 60.0,
         "H_sys_s": fixed.H_sys,
         "beta": fixed.beta,
         "Ki": fixed.agc.ki(fixed.beta),
+        "Kp": fixed.agc.kp(fixed.beta),
+        "kp_fraction": fixed.agc.kp_fraction,
         "t_agc_s": t_agc,
         "baseline_nadir_hz": float(f_base.min()),
         "baseline_settle_hz": float(f_base[-1]),

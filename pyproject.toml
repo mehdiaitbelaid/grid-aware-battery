@@ -1,7 +1,7 @@
 [project]
 name = "grid-aware-battery"
 version = "0.1.0"
-description = "Grid frequency model with AGC secondary control, battery arbitrage MPC, and frequency-aware coupling"
+description = "Tier 1 grid frequency model with AGC secondary control for the Piclo grid-aware battery challenge"
 requires-python = ">=3.10"
 
 [tool.pytest.ini_options]

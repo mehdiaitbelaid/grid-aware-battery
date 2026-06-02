@@ -1,6 +1,5 @@
 """Tests for the AGC secondary controller."""
-import numpy as np
-
+from scenarios.gen_trip import recovery_time
 from gridsim.agc import flexible_fast_agc
 from gridsim.system import PowerSystem
 
@@ -8,6 +7,13 @@ from gridsim.system import PowerSystem
 def test_participation_sums_to_one():
     agc = flexible_fast_agc()
     assert abs(sum(agc.participation.values()) - 1.0) < 1e-9
+
+
+def test_pi_gains_are_scaled_to_system_beta():
+    """PI gains must be derived from beta, not arbitrary fixed constants."""
+    ps = PowerSystem(agc=flexible_fast_agc(t_agc=8.0, kp_fraction=0.10))
+    assert abs(ps.agc.ki(ps.beta) - ps.beta / 8.0) < 1e-12
+    assert abs(ps.agc.kp(ps.beta) - 0.10 * ps.beta) < 1e-12
 
 
 def test_no_agc_does_not_restore():
@@ -18,15 +24,22 @@ def test_no_agc_does_not_restore():
 
 def test_agc_restores_to_nominal():
     """With AGC, frequency must return to within +/-0.01 Hz of 50 (given time)."""
-    ps = PowerSystem(agc=flexible_fast_agc(t_agc=10.0))
+    ps = PowerSystem(agc=flexible_fast_agc())
     _, f = ps.simulate(duration=180.0, loss_mw=1320.0)
     assert abs(f[-1] - 50.0) < 0.01
+
+
+def test_agc_meets_30_second_recovery_target():
+    """Tier 1 target: stay within +/-0.01 Hz of nominal within 30 s of the trip."""
+    ps = PowerSystem(agc=flexible_fast_agc())
+    t, f = ps.simulate(duration=60.0, loss_mw=1320.0)
+    assert recovery_time(t, f, trip_time=5.0) <= 30.0
 
 
 def test_agc_delivers_lost_power_by_participation():
     """At steady state the AGC must supply the lost power, split by participation."""
     loss_mw = 1320.0
-    ps = PowerSystem(agc=flexible_fast_agc(t_agc=10.0))
+    ps = PowerSystem(agc=flexible_fast_agc())
     _, _, Y = ps.simulate(duration=180.0, loss_mw=loss_mw, return_states=True)
     n = len(ps.generators)
     a_final = Y[-1, 2 + n:2 + 2 * n]          # per-unit secondary dispatch
@@ -39,6 +52,6 @@ def test_agc_delivers_lost_power_by_participation():
 
 def test_anti_windup_limits_overshoot():
     """Anti-windup must keep frequency from overshooting 50 by a large margin."""
-    ps = PowerSystem(agc=flexible_fast_agc(t_agc=10.0))
+    ps = PowerSystem(agc=flexible_fast_agc())
     _, f = ps.simulate(duration=180.0, loss_mw=1320.0)
     assert f.max() < 50.05   # small overshoot at most, no runaway above nominal
