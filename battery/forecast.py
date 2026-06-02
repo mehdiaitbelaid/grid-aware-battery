@@ -41,3 +41,18 @@ def perfect_window(p_da, h: int, horizon: int = 24):
     """The true future prices in the window: a ceiling that isolates the limited horizon
     from forecast error (not a real forecast)."""
     return np.asarray(p_da[h:h + horizon], dtype=float)
+
+
+def perfect_plus_noise(p_da, h: int, horizon: int = 24, sigma: float = 0.0, seed: int = 0):
+    """SYNTHETIC forecast-quality probe, NOT a realizable forecast.
+
+    True future prices plus zero-mean Gaussian noise whose standard deviation grows with
+    lead time (sqrt of hours ahead, like a random walk). Used only to map profit against
+    forecast error for the bonus; it deliberately uses future prices, so a real operator
+    could never make this forecast. sigma = 0 recovers perfect foresight.
+    """
+    true = np.asarray(p_da[h:h + horizon], dtype=float)
+    k = np.arange(len(true))
+    rng = np.random.default_rng(seed * 1_000_003 + h)   # reproducible per (seed, hour)
+    sd = sigma * np.sqrt(1.0 + k)                        # forecast error grows with lead time
+    return true + rng.normal(0.0, sd)

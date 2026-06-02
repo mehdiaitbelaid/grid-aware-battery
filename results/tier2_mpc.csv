@@ -1,0 +1,11 @@
+case,profit_gbp,pct_of_perfect
+perfect_foresight,16175.5,100.0
+mpc_perfect_window,16154.8,99.9
+mpc_same_hour_avg,3926.8,24.3
+mpc_persistence,3055.9,18.9
+mpc_noise_sigma_0,16154.8,99.9
+mpc_noise_sigma_5,14878.9,92.0
+mpc_noise_sigma_10,12711.8,78.6
+mpc_noise_sigma_20,9628.3,59.5
+mpc_noise_sigma_40,6978.0,43.1
+mpc_noise_sigma_80,3188.0,19.7

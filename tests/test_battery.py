@@ -3,8 +3,8 @@ import os
 
 import numpy as np
 
-from battery import (BatteryParams, load_prices, persistence, same_hour_average,
-                     solve_arbitrage)
+from battery import (BatteryParams, load_prices, perfect_window, persistence,
+                     run_mpc, same_hour_average, solve_arbitrage)
 
 DATA = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                     "data", "caseB_grid_battery_market_hourly.csv")
@@ -42,3 +42,14 @@ def test_realistic_forecasts_have_no_future_leakage():
             p_corrupt[h:] = -1.0e6                 # destroy the present and the future
             f_corrupt = forecast(p_corrupt, h)
             assert np.allclose(f_clean, f_corrupt), f"{forecast.__name__} leaks future at h={h}"
+
+
+def test_causal_mpc_cannot_beat_the_clairvoyant_optimum():
+    """A rolling MPC, even with perfect within-window prices, cannot earn more than the
+    full-horizon clairvoyant LP. Checked on a short slice for speed."""
+    _, p = load_prices(DATA)
+    p = p[:120]
+    par = BatteryParams()
+    ceiling = solve_arbitrage(p, par, e_start=par.e0_kwh)["profit_gbp"]   # no end rule = clairvoyant
+    mpc = run_mpc(p, par, forecast_fn=perfect_window)["profit_gbp"]
+    assert mpc <= ceiling + 1.0
