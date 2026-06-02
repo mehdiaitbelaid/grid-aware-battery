@@ -43,4 +43,18 @@ Per-tier entry points and tests are added as each tier lands.
 
 ## Status
 
-Tier 1 in progress.
+Tier 1 complete. AGC secondary control restores 50.000 Hz after a 1320 MW trip,
+back within plus or minus 0.01 Hz in 28 s. See `plots/tier1_recovery.png`,
+`results/tier1_gen_trip.csv`, and `docs/decisions.md`. Tiers 2 and 3 to follow.
+
+Regenerate the Tier 1 results:
+
+```
+python make_tier1_figures.py
+```
+
+Run the tests:
+
+```
+pytest
+```
