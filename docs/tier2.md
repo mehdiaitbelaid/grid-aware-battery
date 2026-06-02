@@ -17,7 +17,9 @@ The same optimiser (`battery/arbitrage.py`) serves both the perfect-foresight ba
   of that hour-of-day over the last 7 complete days. Steadier than naive persistence, and
   it uses only past data.
 - **End-of-window handling:** a terminal value on leftover energy, priced at the window's
-  mean forecast price, so a finite window does not dump all its charge at the edge.
+  mean forecast price, intended to stop a finite window dumping its charge at the edge.
+  (The ablation below shows this risk does not actually bite on this dataset; the value is
+  kept as a standard, near-free safeguard.)
 - **State-of-charge continuity:** the real charge is carried forward each hour, so each
   plan starts from where the battery actually is.
 
@@ -30,6 +32,26 @@ The same optimiser (`battery/arbitrage.py`) serves both the perfect-foresight ba
   realistic forecasts do not change. The terminal value uses the forecast-window mean,
   never the future price series. (`perfect_window` and the noise probe use the future on
   purpose and are clearly labelled as analysis tools, not forecasts.)
+
+## Terminal-value ablation
+Does the terminal value earn its place? Running the perfect-window MPC (perfect prices, so
+the terminal value is isolated from forecast error) with and without it, across window
+lengths (`make_tier2_ablation.py`, `results/tier2_terminal_ablation.csv`):
+
+| window | terminal on | terminal off | difference |
+|---|---|---|---|
+| 24 h | GBP 16,155 | GBP 16,194 | -39 (-0.2%) |
+| 12 h | GBP 16,155 | GBP 16,194 | -39 (-0.2%) |
+| 6 h | GBP 16,101 | GBP 16,181 | -80 (-0.5%) |
+
+The terminal value is near-neutral at every horizon, even 6 h, and marginally
+counterproductive. So the horizon-edge dumping the brief warned about does not bite on
+this dataset, for three reasons: a 24 h window already spans the daily arbitrage cycle;
+valuing leftover energy at the window mean is near-neutral by construction (the battery is
+roughly indifferent between holding energy worth the mean and selling at the mean); and
+only the first hour is committed each step, so the window's end bias is washed out before
+it reaches a committed action. The value is kept as a standard, near-free safeguard, but
+the honest conclusion is that it is not load-bearing here.
 
 ## Result
 - Perfect foresight: GBP 16,176 over 60 days.
