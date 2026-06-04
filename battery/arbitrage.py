@@ -42,7 +42,8 @@ def load_prices(path: str):
 
 def solve_arbitrage(prices, params: BatteryParams = BatteryParams(),
                     e_start: float | None = None, e_end_min: float | None = None,
-                    terminal_price: float | None = None):
+                    terminal_price: float | None = None,
+                    reserve_power_kw: float = 0.0, reserve_energy_kwh: float = 0.0):
     """Solve the arbitrage LP over one price window.
 
     prices         : day-ahead prices over the window [GBP/MWh]
@@ -50,6 +51,10 @@ def solve_arbitrage(prices, params: BatteryParams = BatteryParams(),
     e_end_min      : minimum end-of-window state of charge [kWh] (None = unconstrained)
     terminal_price : if given, value leftover end-of-window energy at this price
                      [GBP/MWh], so a finite window does not dump all its charge at the edge
+    reserve_power_kw  : keep this much upward (discharge) power free every hour for
+                        frequency response, so the schedule never spends the full rating
+    reserve_energy_kwh: keep at least this much stored energy every hour, so the reserved
+                        power can actually be sustained for its required duration
 
     Returns a dict: charge_kw, discharge_kw, soc_kwh (length T+1), profit_gbp.
     For the MPC the terminal value is only a planning aid; booked profit uses real prices
@@ -76,6 +81,15 @@ def solve_arbitrage(prices, params: BatteryParams = BatteryParams(),
                           - pdis[t] / par.eta_dis * par.dt_h)
     if e_end_min is not None:
         m += e[T] >= e_end_min
+
+    # Tier 3 frequency-response reserve: always keep upward (discharge) headroom and the
+    # stored energy to sustain it, so the battery can answer a low-frequency event on demand.
+    if reserve_power_kw > 0.0:
+        for t in range(T):
+            m += pdis[t] - pch[t] <= par.p_max_kw - reserve_power_kw
+    if reserve_energy_kwh > 0.0:
+        for t in range(T + 1):
+            m += e[t] >= reserve_energy_kwh
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")          # hush the PuLP/CBC solver deprecation noise
