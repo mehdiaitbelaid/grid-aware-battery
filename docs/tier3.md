@@ -131,3 +131,40 @@ and then taper the response as frequency normalises.
 - Synthetic inertia is modelled as an addition to the system inertia, the exact resolution of
   a df/dt response; a real implementation must filter the noisy df/dt measurement.
 - The fleet size and droop envelope are representative; the sweeps show the sensitivity.
+
+## Stage 3: the supervisor
+Stages 1 and 2 left two halves: the market reserve and the physical response. Stage 3 is the
+controller that runs them together, deciding moment to moment, from the live frequency, which
+job the battery does. It is a four-mode state machine (`coupling/supervisor.py`):
+
+- ARBITRAGE (healthy frequency): follow the market dispatch.
+- RESERVE (drifting low): stop charging, hold ready.
+- RESPONSE (below 49.8 Hz): drop arbitrage, inject the reserved power.
+- RECOVERY (climbing back): taper the response to zero by the all-clear, then resume arbitrage.
+
+Every boundary has hysteresis: the threshold to enter a more alert state going down sits below
+the threshold to clear back coming up, so the battery cannot chatter around a line. The
+RECOVERY taper hands the last of the restoration back to the AGC, the fix for the Stage 2
+settle-drag.
+
+### The event timeline
+One severe 1800 MW trip while the battery is charging at 150 MW for arbitrage
+(`make_tier3_stage3.py`, `plots/tier3_stage3_timeline.png`):
+
+| time since trip | mode | what the battery does |
+|---|---|---|
+| +0.00 s | ARBITRAGE | charging 150 MW |
+| +0.24 s | RESERVE | cancels charging, holds ready |
+| +0.61 s | RESPONSE | discharges up to 206 MW to support the grid |
+| +1.46 s | RECOVERY | tapers the response as frequency climbs |
+| +14.71 s | ARBITRAGE | resumes charging |
+
+The supervised battery lifts the nadir to 49.779 Hz, against 49.740 Hz with no battery, and
+hands control back cleanly. A first version chattered because one boundary lacked hysteresis;
+the per-state machine fixes it and a test guards against regression.
+
+### Stage 3 scope
+- One under-frequency event is shown; the same logic is symmetric for over-frequency.
+- The response deployed is the Stage 2 droop; synthetic inertia is characterised in Stage 2.
+- The supervisor is event-gated, responding below 49.8 Hz rather than to every wiggle, which
+  is why frequency response sits so lightly on arbitrage: the Stage 1 sensitivity made physical.

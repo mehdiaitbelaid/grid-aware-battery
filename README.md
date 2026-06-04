@@ -1,9 +1,10 @@
 # Grid-Aware Battery Optimisation
 
 Working toward a grid-aware battery optimisation project for the Piclo engineering
-challenge. The current repo completes Tiers 1 and 2: fixing the grid-frequency
-simulator's secondary frequency restoration, and replacing the battery's
-perfect foresight optimiser with a rolling-horizon MPC.
+challenge. The current repo implements all three tiers: fixing the grid frequency
+simulator's secondary frequency restoration (Tier 1), replacing the battery's perfect
+foresight optimiser with a rolling-horizon MPC (Tier 2), and coupling the two through a
+reserve, a physical fleet response, and a supervisor (Tier 3).
 
 ## The three tiers
 
@@ -13,9 +14,9 @@ perfect foresight optimiser with a rolling-horizon MPC.
 - **Tier 2 (markets).** Replace the perfect foresight battery LP with a rolling
   horizon MPC that acts on a price forecast. Done.
 - **Tier 3 (coupling).** Let the battery's market behaviour respond to grid
-  frequency state through a supervisory controller. Stages 1 and 2 added: the reserve
-  arbitrage frontier, and the battery's physical frequency response in the grid model.
-  The live frequency-state supervisor is still to follow.
+  frequency state through a supervisory controller. Stages 1, 2, and 3 added: the reserve
+  arbitrage frontier, the battery's physical frequency response in the grid model, and the
+  supervisor that switches between them on the live frequency.
 
 ## Structure
 
@@ -71,8 +72,13 @@ Tier 3 Stage 2 puts the reserved power into the frequency model as an aggregated
 synthetic droop and synthetic inertia. On the severe 1800 MW trip that Tier 1 missed the
 30 s target on, a 500 MW fleet restores within target (34 to 22.9 s), while too large a
 fleet over-helps the dip and drags the settle, a sweet spot. See `docs/tier3.md`,
-`plots/tier3_pareto.png`, and `plots/tier3_stage2_severe.png`. The remaining Tier 3 work is
-the live frequency-state supervisor that switches and tapers between arbitrage and response.
+`plots/tier3_pareto.png`, and `plots/tier3_stage2_severe.png`.
+
+Tier 3 Stage 3 is the supervisor: a four-mode state machine (ARBITRAGE, RESERVE, RESPONSE,
+RECOVERY) with hysteresis that switches the battery between arbitrage and frequency response
+on the live frequency, and tapers the response during recovery to protect the settle. On a
+severe 1800 MW trip it cancels charging, supports the grid, then returns to arbitrage with no
+chatter. See `coupling/`, `docs/tier3.md`, and `plots/tier3_stage3_timeline.png`.
 
 Regenerate the results:
 
@@ -82,6 +88,7 @@ python make_tier2_figures.py
 python make_tier3_pareto.py
 python make_tier3_sensitivity.py
 python make_tier3_stage2_sweep.py
+python make_tier3_stage3.py
 ```
 
 Run the tests:
