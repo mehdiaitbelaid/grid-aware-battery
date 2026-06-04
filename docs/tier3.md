@@ -134,6 +134,22 @@ and then tapers the response as frequency normalises.
   a df/dt response. A real implementation must filter the noisy df/dt measurement.
 - The fleet size and droop envelope are representative. The sweeps show the sensitivity.
 
+### Over-frequency, response speed, and the full surface
+The fleet droop is symmetric, so an over-frequency event is contained the same way: a 1320 MW
+generation surplus pushes frequency to a 50.19 Hz zenith, the mirror of the 49.81 nadir, and
+the fleet absorbs by charging to pull it back to 50.17 (`make_tier3_overfreq.py`). Response
+speed is a second axis beyond reserved power: at a fixed 500 MW reserve, a fast ramp gives
+the full nadir lift while a 50 MW/s ramp arrives too late to help (`make_tier3_speed.py`).
+Sweeping reserve and ramp rate together (`make_tier3_surface.py`,
+`plots/tier3_surface.png`) shows the two interact: at 50 MW/s the nadir is 49.745 Hz whatever
+the reserve, because the response arrives after the dip, while at 1000 MW/s it climbs from
+49.754 Hz at 250 MW reserve to 49.815 Hz at 2 GW. A large reserve is wasted without speed,
+and speed has little to give without reserve. Each reserve level also carries its Stage 1
+arbitrage cost, so this is the three-way trade-off a flexibility provider faces: arbitrage
+profit against response availability against response speed. The droop envelope, full
+response by 0.5 Hz of deviation, follows the shape of National Grid's Dynamic Containment;
+DC, Dynamic Moderation, and Dynamic Regulation are the GB products that pay for this.
+
 ## Stage 3: the supervisor
 Stages 1 and 2 left two halves: the market reserve and the physical response. In Stage 3 I built the
 controller that runs them together, deciding moment to moment, from the live frequency, which

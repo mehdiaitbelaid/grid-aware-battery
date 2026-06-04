@@ -22,6 +22,10 @@ and overshoot grows: the expected degradation away from the design point. Meetin
 there would need a tighter T_agc or more fast reserve. I state it as a known limitation,
 I do not hide it.
 
+The RoCoF stays well within limits across all of these, from -0.12 Hz/s at 500 MW to
+-0.43 Hz/s at 1800 MW, inside both the current 1 Hz/s GB Grid Code limit and the older
+0.5 Hz/s. The robustness CSV carries this as a `within_rocof_1hz` pass column.
+
 ## Gain sweep: why T_agc = 8 s and Kp = 0.10 * beta
 On the 1320 MW design trip (`results/tier1_gain_sweep.csv`).
 
