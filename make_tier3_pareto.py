@@ -1,10 +1,10 @@
 """
-Tier 3, Stage 1: the cost of reserving frequency-response capacity.
+Tier 3, Stage 1: the cost of reserving frequency response capacity.
 
-Re-solves the perfect-foresight arbitrage LP while forcing the battery to keep a fixed
+Re-solves the perfect foresight arbitrage LP while forcing the battery to keep a fixed
 amount of upward (discharge) power available every hour, plus the stored energy to sustain
 it for a stated duration. Sweeping the reserve from 0 to 100% of rated power traces the
-trade-off between arbitrage profit and frequency-response availability. This is the market
+trade-off between arbitrage profit and frequency response availability. This is the market
 availability half of Tier 3; the live frequency-state supervisor and physical response
 simulation are separate follow-on work.
 
@@ -65,5 +65,5 @@ fig.tight_layout()
 fig.savefig(os.path.join(PLOTS, "tier3_pareto.png"), dpi=150)
 plt.close(fig)
 
-print(f"baseline (0% reserve): GBP {base:,.0f}   (should match the Tier 2 perfect-foresight 16,176)")
+print(f"baseline (0% reserve): GBP {base:,.0f}   (should match the Tier 2 perfect foresight 16,176)")
 print(df.to_string(index=False))

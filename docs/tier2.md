@@ -9,7 +9,7 @@ operator knows future prices. Tier 2 replaces it with a realistic rolling-horizo
 Each hour: forecast the next 24 h of prices, solve the arbitrage LP over that window from
 the battery's real state of charge, commit only the first hour's action, book that
 action's profit at the REAL price, carry the real state of charge forward, and roll on.
-The same optimiser (`battery/arbitrage.py`) serves both the perfect-foresight baseline
+The same optimiser (`battery/arbitrage.py`) serves both the perfect foresight baseline
 (one call over all prices) and the MPC (a call per hour).
 
 ## Decisions (set and justified by the author)
@@ -25,7 +25,7 @@ The same optimiser (`battery/arbitrage.py`) serves both the perfect-foresight ba
 
 ## Validation
 - The perfect-window MPC (true prices within each 24 h window) reproduces the full
-  perfect-foresight LP to within about 0.1%, which validates the rolling-horizon
+  perfect foresight LP to within about 0.1%, which validates the rolling-horizon
   implementation on this dataset and shows that the main loss in the realistic MPC runs
   is forecast quality, not the 24 h receding-horizon machinery or the terminal value.
 - No future leakage: a test corrupts every price from hour h onward and confirms the
@@ -66,7 +66,7 @@ the honest conclusion is that it is not load-bearing here.
 
 ## Headline
 A 24-hour rolling MPC with perfect within-window prices nearly matches the full
-perfect-foresight LP, so the rolling implementation is sound. With simple realistic
+perfect foresight LP, so the rolling implementation is sound. With simple realistic
 forecasts, profit falls to 19 to 24% of perfect foresight, quantifying the value
 destroyed by price uncertainty.
 

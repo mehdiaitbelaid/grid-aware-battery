@@ -1,5 +1,5 @@
 """
-Tier 2 deliverables: the perfect-foresight vs rolling-horizon MPC comparison, and the
+Tier 2 deliverables: the perfect foresight vs rolling-horizon MPC comparison, and the
 profit-versus-forecast-quality sweep (the value of information).
 
 Writes results/tier2_mpc.csv, plots/tier2_decomposition.png, plots/tier2_forecast_value.png.

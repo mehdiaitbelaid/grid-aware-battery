@@ -1,9 +1,9 @@
 """
 Battery arbitrage as a linear program, reusable over any price window.
 
-Ported from the EGS coursework model (a single perfect-foresight LP over all hours)
+Ported from the EGS coursework model (a single perfect foresight LP over all hours)
 into a function that solves over an arbitrary horizon from an arbitrary starting state
-of charge. The same optimiser then drives both the perfect-foresight baseline (one big
+of charge. The same optimiser then drives both the perfect foresight baseline (one big
 call over all prices) and the rolling-horizon MPC (many small calls over 24 h windows).
 
 Decision variables per hour: charge power, discharge power, and stored energy (SoC).
@@ -82,13 +82,13 @@ def solve_arbitrage(prices, params: BatteryParams = BatteryParams(),
     if e_end_min is not None:
         m += e[T] >= e_end_min
 
-    # Tier 3 frequency-response reserve: always keep upward (discharge) headroom and the
+    # Tier 3 frequency response reserve: always keep upward (discharge) headroom and the
     # stored energy to sustain it, so the battery can answer a low-frequency event on demand.
     if reserve_power_kw > 0.0:
         for t in range(T):
             m += pdis[t] - pch[t] <= par.p_max_kw - reserve_power_kw
     if reserve_energy_kwh > 0.0:
-        for t in range(T + 1):
+        for t in range(1, T + 1):   # floor the controllable trajectory, not the given start SoC
             m += e[t] >= reserve_energy_kwh
 
     with warnings.catch_warnings():

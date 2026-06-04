@@ -8,7 +8,7 @@ book that action's profit at the REAL price, carry the real SoC forward, and rol
 
 The forecast is pluggable (`forecast_fn`), which lets us compare forecast strategies and,
 later, inject forecast error. The controller decides on a forecast but is paid on reality,
-and the profit gap to the perfect-foresight LP is the cost of uncertainty.
+and the profit gap to the perfect foresight LP is the cost of uncertainty.
 """
 from __future__ import annotations
 
@@ -19,14 +19,16 @@ from .forecast import same_hour_average
 
 
 def run_mpc(p_da, params: BatteryParams = BatteryParams(), horizon: int = 24,
-            forecast_fn=None, lookback_days: int = 7, terminal: bool = True):
+            forecast_fn=None, lookback_days: int = 7, terminal: bool = True,
+            reserve_power_kw: float = 0.0, reserve_energy_kwh: float = 0.0):
     """Run the rolling-horizon MPC over the whole price series.
 
     forecast_fn(p_da, h, horizon) -> array of forecast prices; defaults to the
     same-hour-average forecast. `terminal` toggles the end-of-window terminal value
-    (set False for the ablation that shows the horizon-edge dumping problem). Returns a
-    dict: charge_kw, discharge_kw, soc_kwh, profit_gbp. Profit is booked at the real
-    prices on the committed first-hour actions.
+    (set False for the ablation that shows the horizon-edge dumping problem). The optional
+    reserve_power_kw / reserve_energy_kwh hold frequency response headroom in every hourly
+    plan. Returns a dict: charge_kw, discharge_kw, soc_kwh, profit_gbp. Profit is booked at
+    the real prices on the committed first-hour actions.
     """
     par = params
     T = len(p_da)
@@ -49,7 +51,9 @@ def run_mpc(p_da, params: BatteryParams = BatteryParams(), horizon: int = 24,
         if fc.size == 0:                                  # safety at the very end of the data
             fc = np.asarray(p_da[h:h + 1], dtype=float)
         term = float(np.mean(fc)) if terminal else None
-        plan = solve_arbitrage(fc, par, e_start=e, terminal_price=term)
+        plan = solve_arbitrage(fc, par, e_start=e, terminal_price=term,
+                               reserve_power_kw=reserve_power_kw,
+                               reserve_energy_kwh=reserve_energy_kwh)
 
         c0 = float(plan["charge_kw"][0])                  # commit only the first hour
         d0 = float(plan["discharge_kw"][0])

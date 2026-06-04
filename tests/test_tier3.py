@@ -1,4 +1,4 @@
-"""Tier 3 tests: the arbitrage LP must honour the frequency-response reserve."""
+"""Tier 3 tests: the arbitrage LP must honour the frequency response reserve."""
 import os
 
 from battery import BatteryParams, load_prices, solve_arbitrage

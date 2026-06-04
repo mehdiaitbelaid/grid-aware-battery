@@ -1,4 +1,4 @@
-"""battery: arbitrage optimisation (perfect-foresight LP and rolling-horizon MPC)."""
+"""battery: arbitrage optimisation (perfect foresight LP and rolling-horizon MPC)."""
 
 from .arbitrage import BatteryParams, load_prices, solve_arbitrage
 from .forecast import same_hour_average, persistence, perfect_window, perfect_plus_noise
