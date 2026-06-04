@@ -1,0 +1,3 @@
+case,zenith_hz,rocof_hz_s,settle_hz
+AGC only (no battery),50.192,0.318,50.0
+AGC + 500 MW fleet,50.172,0.309,50.0

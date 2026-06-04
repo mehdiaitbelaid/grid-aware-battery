@@ -40,10 +40,11 @@ for loss in losses:
     m = metrics(t, f)
     m.update(loss_mw=loss,
              meets_30s=bool(m["recovery_s"] is not None and m["recovery_s"] <= 30.0),
-             above_49p2=bool(f.min() >= 49.2))
+             above_49p2=bool(f.min() >= 49.2),
+             within_rocof_1hz=bool(abs(m["rocof_hz_s"]) <= 1.0))   # GB Grid Code RoCoF limit, was 0.5
     rob.append(m)
-rob_df = pd.DataFrame(rob)[["loss_mw", "nadir_hz", "rocof_hz_s", "recovery_s",
-                            "overshoot_mhz", "settle_hz", "meets_30s", "above_49p2"]]
+rob_df = pd.DataFrame(rob)[["loss_mw", "nadir_hz", "rocof_hz_s", "within_rocof_1hz",
+                            "recovery_s", "overshoot_mhz", "settle_hz", "meets_30s", "above_49p2"]]
 rob_df.to_csv(os.path.join(RESULTS, "tier1_robustness.csv"), index=False)
 
 fig, ax = plt.subplots(figsize=(9, 5.2))

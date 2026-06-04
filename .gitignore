@@ -10,3 +10,11 @@ env/
 .pytest_cache/
 .ipynb_checkpoints/
 .DS_Store
+*.aux
+*.log
+*.out
+*.synctex.gz
+
+# write-up build files, kept local and out of the code repo
+submission.*
+figures_appendix.*

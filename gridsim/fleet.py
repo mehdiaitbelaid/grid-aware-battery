@@ -20,9 +20,10 @@ class FleetResponse:
         return self.h_batt_s * self.p_fleet_mw / s_base_mw
 
     def injection_pu(self, f_hz: float, f_nom: float, s_base_mw: float) -> float:
-        dev = f_nom - f_hz                       # Hz below nominal (positive = under-frequency)
-        if dev <= self.deadband_hz:
+        dev = f_nom - f_hz                       # +ve below nominal (inject), -ve above (absorb)
+        if abs(dev) <= self.deadband_hz:
             return 0.0
         gain_mw_per_hz = self.reserve / self.droop_full_hz
-        p_mw = min(self.reserve, gain_mw_per_hz * (dev - self.deadband_hz))
+        mag = min(self.reserve, gain_mw_per_hz * (abs(dev) - self.deadband_hz))
+        p_mw = mag if dev > 0 else -mag          # symmetric droop: discharge when low, charge when high
         return p_mw / s_base_mw
