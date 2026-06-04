@@ -35,3 +35,11 @@ def test_bigger_fleet_lifts_nadir_more():
     _, f500 = _run(FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0))
     _, f2000 = _run(FleetResponse(p_fleet_mw=2000.0, e_fleet_mwh=4000.0))
     assert f2000.min() > f500.min()
+
+
+def test_fleet_absorbs_in_over_frequency():
+    fleet = FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0)
+    low = fleet.injection_pu(49.5, 50.0, 30000.0)    # under-frequency -> discharge (inject)
+    high = fleet.injection_pu(50.5, 50.0, 30000.0)   # over-frequency -> charge (absorb)
+    assert low > 0 and high < 0
+    assert abs(low + high) < 1e-12                   # symmetric magnitude about nominal

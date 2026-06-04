@@ -1,4 +1,4 @@
-loss_mw,nadir_hz,rocof_hz_s,within_rocof_1hz,recovery_s,overshoot_mhz,settle_hz,meets_30s,above_49p2
+loss_mw,nadir_hz,rocof_hz_s,within_rocof_limit,recovery_s,overshoot_mhz,settle_hz,meets_30s,above_49p2
 500,49.922,-0.121,True,15.1,7.5,50.0,True,True
 1000,49.853,-0.241,True,20.7,5.2,50.0,True,True
 1320,49.808,-0.318,True,21.8,3.5,50.0,True,True

@@ -1,11 +1,5 @@
-"""
-Over-frequency case: the symmetric mirror of the Stage 2 under-frequency response.
-
-A sudden generation surplus (a negative loss, here a 1320 MW load loss) pushes frequency up.
-With the fleet droop made symmetric it now absorbs by charging, the mirror of discharging to
-lift a nadir, so the response genuinely covers both directions rather than only under-frequency.
-Writes results/tier3_overfreq.csv and plots/tier3_overfreq.png.
-"""
+"""Over-frequency: a 1320 MW generation surplus, with the symmetric fleet absorbing to
+contain the rise, the mirror of the nadir case."""
 import os
 
 import numpy as np

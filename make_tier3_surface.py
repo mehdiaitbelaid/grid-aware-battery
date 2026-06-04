@@ -1,14 +1,6 @@
-"""
-Tier 3, the full surface: reserved power and response speed swept together.
-
-The Stage 1 frontier swept reserved power alone; make_tier3_speed.py swept ramp rate at one
-reserve. Here I sweep both on the severe 1800 MW trip and map the nadir over the grid. It
-shows the two interact: a large reserve is wasted if the ramp is slow (it arrives after the
-nadir), and a fast ramp has little to give if the reserve is small. Each reserve row also
-carries a known arbitrage cost from the Stage 1 Pareto, so the operator trades a fixed
-arbitrage loss for a nadir that depends on speed as well as size. Writes
-results/tier3_surface.csv and plots/tier3_surface.png.
-"""
+"""Sweep reserved power and fleet ramp rate together on the 1800 MW trip and map the nadir.
+They interact: a big reserve is wasted with a slow ramp, a fast ramp has little to give with
+a small reserve, so you need both."""
 import os
 
 import numpy as np

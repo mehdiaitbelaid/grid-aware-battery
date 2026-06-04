@@ -129,7 +129,8 @@ middle case. This tension is what motivated the Stage 3 supervisor, which takes 
 and then tapers the response as frequency normalises.
 
 ### Stage 2 scope
-- The fleet provides only upward (discharge) response to low-frequency events.
+- The fleet droop is symmetric: it discharges to support low frequency and absorbs (charges)
+  to contain over-frequency, shown in the over-frequency run below.
 - Synthetic inertia is modelled as an addition to the system inertia, the exact resolution of
   a df/dt response. A real implementation must filter the noisy df/dt measurement.
 - The fleet size and droop envelope are representative. The sweeps show the sensitivity.
@@ -182,8 +183,9 @@ hands control back without chatter. My first version chattered because one bound
 The per-state machine fixes it and a test guards against regression.
 
 ### Stage 3 scope
-- I show a single under-frequency event as a stress demo. The same logic is symmetric for
-  over-frequency.
+- I show a single under-frequency event through the supervisor. The over-frequency case is
+  shown in the fleet model above (symmetric droop); the supervisor's mode logic here is the
+  low-frequency side, and a mirror high-frequency mode would complete it.
 - I treat the arbitrage setpoint as scheduled demand, so only the battery's deviation from
   it moves frequency, and the scheduled charging does not disturb frequency before the trip.
 - The response deployed is the Stage 2 droop. I characterise synthetic inertia in Stage 2.

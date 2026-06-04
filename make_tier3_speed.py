@@ -1,12 +1,5 @@
-"""
-Response speed: the third axis the one-dimensional reserve frontier omits.
-
-At a fixed 500 MW reserve, I limit how fast the fleet can ramp to full power and sweep that
-rate on the severe 1800 MW trip. A faster ramp catches the fall sooner and lifts the nadir
-more; a slow ramp arrives too late to help the dip. Faster ramping also means more aggressive
-cycling and so more degradation, the cost side of the same axis, which I note but do not price
-here. Writes results/tier3_speed.csv and plots/tier3_speed.png.
-"""
+"""Response speed: at a fixed 500 MW reserve, sweep the fleet ramp rate on the 1800 MW trip.
+A fast ramp lifts the nadir, a slow one arrives too late. Faster also cycles harder."""
 import os
 
 import numpy as np
