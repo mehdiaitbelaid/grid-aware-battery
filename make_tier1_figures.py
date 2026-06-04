@@ -1,4 +1,3 @@
-"""Generate the Tier 1 deliverables: the before/after CSV and the recovery plot."""
 import os
 
 import matplotlib
@@ -19,7 +18,7 @@ df, m = run_gen_trip(loss_mw=1320.0, duration=60.0, trip_time=TRIP, t_agc=8.0)
 csv_path = os.path.join(RESULTS, "tier1_gen_trip.csv")
 df.to_csv(csv_path, index=False)
 
-# time measured from the trip, so the axis reads what the labels say
+# Plot relative to the trip so the axis matches the recovery target
 x = df.time_s - TRIP
 
 fig, ax = plt.subplots(figsize=(10, 5.6))

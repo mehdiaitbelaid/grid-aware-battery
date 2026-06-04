@@ -1,17 +1,3 @@
-"""
-Tier 2 terminal-value ablation: does valuing leftover end-of-window energy matter?
-
-Runs the perfect-window MPC (perfect prices, so the terminal value is isolated from
-forecast error) with and without the terminal value, across window lengths. Writes
-results/tier2_terminal_ablation.csv.
-
-Finding: on this dataset the terminal value is near-neutral at every horizon. The
-horizon-edge dumping the brief warned about does not bite, because the 24 h window spans
-the daily arbitrage cycle, valuing leftover energy at the window mean is near-neutral by
-construction, and only the first hour is committed each step (so the window's end bias is
-washed out before it reaches a committed action). The terminal value is kept as a
-standard, near-free safeguard rather than removed.
-"""
 import os
 
 import pandas as pd

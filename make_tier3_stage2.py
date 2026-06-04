@@ -1,11 +1,3 @@
-"""
-Tier 3 Stage 2: what the reserved battery buys the grid.
-
-Scales the battery to an aggregated fleet and injects it into the Tier 1 frequency model as
-synthetic droop (lifts the nadir) plus synthetic inertia (lowers the RoCoF). Runs the
-standard 1320 MW trip with and without the fleet and compares nadir and RoCoF, reusing the
-Tier 1 metric definitions. Writes results/tier3_stage2.csv and plots/tier3_stage2_response.png.
-"""
 import os
 
 import numpy as np

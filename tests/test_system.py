@@ -1,4 +1,3 @@
-"""Tests for the multi-unit single-area model (PowerSystem)."""
 import numpy as np
 
 from gridsim.model import SingleAreaLFC
@@ -7,16 +6,14 @@ from gridsim.system import PowerSystem
 
 
 def test_system_inertia_is_capacity_weighted():
-    """H_sys = sum(H_i * MW_i) / MW_base; only synchronous units contribute."""
     ps = PowerSystem()
     expected = sum(g.H * g.capacity_mw for g in gb_mix()) / ps.s_base_mw
     assert abs(ps.H_sys - expected) < 1e-9
-    # wind and interconnectors (H=0) must not add inertia
-    assert ps.H_sys < 4.0  # high-wind snapshot: noticeably below a 5 s machine
+    # Wind and interconnectors have H=0 in this snapshot
+    assert ps.H_sys < 4.0  # high-wind snapshot, so noticeably below a 5 s machine
 
 
 def test_offset_matches_effective_beta():
-    """With the deadband off, settled frequency matches the analytic offset."""
     ps = PowerSystem(deadband_hz=0.0)
     _, f = ps.simulate(duration=90.0, loss_mw=1320.0)
     predicted = ps.f_nom + ps.steady_state_offset_hz(1320.0)
@@ -24,7 +21,6 @@ def test_offset_matches_effective_beta():
 
 
 def test_nongoverning_units_provide_no_primary_response():
-    """Nuclear, wind and interconnectors must contribute zero droop gain."""
     ps = PowerSystem()
     for g in ps.generators:
         if not g.governs:
@@ -32,8 +28,6 @@ def test_nongoverning_units_provide_no_primary_response():
 
 
 def test_deadband_deepens_the_offset():
-    """A governor deadband settles slightly lower than the no-deadband case,
-    but only by an amount on the order of the deadband itself."""
     loss = 1320.0
     no_db = PowerSystem(deadband_hz=0.0).simulate(duration=90.0, loss_mw=loss)[1][-1]
     with_db = PowerSystem(deadband_hz=0.015).simulate(duration=90.0, loss_mw=loss)[1][-1]
@@ -42,7 +36,6 @@ def test_deadband_deepens_the_offset():
 
 
 def test_reduces_to_single_machine():
-    """One aggregate governing unit (deadband off) reproduces SingleAreaLFC exactly."""
     agg = Generator("agg", "agg", 30000.0, H=5.0, R=0.05, Tg=0.3, governs=True)
     ps = PowerSystem(generators=[agg], D=1.0, s_base_mw=30000.0, deadband_hz=0.0)
     single = SingleAreaLFC(H=5.0, D=1.0, R=0.05, Tg=0.3, s_base_mw=30000.0)

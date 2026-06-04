@@ -1,4 +1,3 @@
-"""Tier 3 Stage 2 tests: the battery fleet helps the frequency response and is a no-op when off."""
 import numpy as np
 
 from gridsim.agc import flexible_fast_agc
@@ -19,7 +18,6 @@ def _rocof(t, f):
 
 
 def test_fleet_none_is_a_noop():
-    """With fleet=None the model must reproduce the Tier 1 result exactly."""
     _, f_none = _run(None)
     _, f_base = PowerSystem(agc=flexible_fast_agc()).simulate(
         duration=60.0, trip_time=TRIP, loss_mw=LOSS)
@@ -27,7 +25,6 @@ def test_fleet_none_is_a_noop():
 
 
 def test_fleet_improves_nadir_and_rocof():
-    """A 500 MW fleet must raise the nadir and make the RoCoF less steep."""
     t0, f0 = _run(None)
     t1, f1 = _run(FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0))
     assert f1.min() > f0.min()                       # higher (better) nadir
@@ -35,7 +32,6 @@ def test_fleet_improves_nadir_and_rocof():
 
 
 def test_bigger_fleet_lifts_nadir_more():
-    """More fleet power should lift the nadir further."""
     _, f500 = _run(FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0))
     _, f2000 = _run(FleetResponse(p_fleet_mw=2000.0, e_fleet_mwh=4000.0))
     assert f2000.min() > f500.min()

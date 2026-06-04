@@ -1,12 +1,3 @@
-"""
-Tier 3 Stage 3: the supervisor coupling arbitrage and frequency response.
-
-One timeline. The battery is charging for arbitrage, a severe 1800 MW trip hits, the
-supervisor switches ARBITRAGE -> RESERVE -> RESPONSE (deploying the reserved power), then
-RECOVERY tapers it out, then it returns to ARBITRAGE. The figure shows the frequency, the
-mode over time (shaded), and the battery power. Writes results/tier3_stage3_timeline.csv and
-plots/tier3_stage3_timeline.png.
-"""
 import os
 
 import numpy as np

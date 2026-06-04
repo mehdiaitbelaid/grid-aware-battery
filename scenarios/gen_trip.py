@@ -1,10 +1,3 @@
-"""
-Generator-trip scenario: baseline (droop only) versus fixed AGC.
-
-Drops `loss_mw` of generation at `trip_time` and compares the frequency response
-with and without secondary control, returning a tidy time series and summary metrics
-for the before/after CSV and the recovery plot.
-"""
 from __future__ import annotations
 
 import numpy as np
@@ -16,7 +9,6 @@ from gridsim.system import PowerSystem
 
 def recovery_time(t: np.ndarray, f: np.ndarray, trip_time: float,
                   tol: float = 0.01) -> float:
-    """Seconds after the trip until frequency stays within +/- tol of 50 Hz."""
     bad = np.where((t >= trip_time) & (np.abs(f - 50.0) >= tol))[0]
     if len(bad) == 0:
         return 0.0
@@ -25,10 +17,6 @@ def recovery_time(t: np.ndarray, f: np.ndarray, trip_time: float,
 
 def run_gen_trip(loss_mw: float = 1320.0, duration: float = 60.0,
                  trip_time: float = 5.0, t_agc: float = 8.0):
-    """Run the baseline and AGC responses to a generation trip.
-
-    Returns (DataFrame[time_s, freq_baseline_hz, freq_agc_hz], metrics dict).
-    """
     baseline = PowerSystem(agc=None)
     fixed = PowerSystem(agc=flexible_fast_agc(t_agc=t_agc))
 

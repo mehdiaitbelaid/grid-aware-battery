@@ -1,11 +1,3 @@
-"""
-Tier 2 deliverables: the perfect foresight vs rolling-horizon MPC comparison, and the
-profit-versus-forecast-quality sweep (the value of information).
-
-Writes results/tier2_mpc.csv, plots/tier2_decomposition.png, plots/tier2_forecast_value.png.
-The MPC calls the LP solver about 1440 times per run, so the full script takes a couple
-of minutes.
-"""
 import os
 
 import matplotlib
@@ -26,18 +18,33 @@ os.makedirs(PLOTS, exist_ok=True)
 _, p_da = load_prices(DATA)
 par = BatteryParams()
 
-pf = solve_arbitrage(p_da, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh)["profit_gbp"]
-pw = run_mpc(p_da, par, forecast_fn=perfect_window)["profit_gbp"]
-ps = run_mpc(p_da, par, forecast_fn=persistence)["profit_gbp"]
-sh = run_mpc(p_da, par)["profit_gbp"]                 # same-hour average (the chosen forecast)
+perfect_result = solve_arbitrage(p_da, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh)
+window_result = run_mpc(p_da, par, forecast_fn=perfect_window)
+persistence_result = run_mpc(p_da, par, forecast_fn=persistence)
+same_hour_result = run_mpc(p_da, par)
+pf, pw, ps, sh = (case["profit_gbp"] for case in (
+    perfect_result, window_result, persistence_result, same_hour_result))
+
+e0 = par.e0_kwh
+mean_price = float(p_da.mean())                       # inventory mark for end-SoC fairness
+
+
+def _final_soc(case):
+    return float(case["soc_kwh"][-1])
+
+
+def _adj_profit(case):
+    # Mark end-of-horizon inventory so a run ending empty is not flattered by unreplaced energy
+    return case["profit_gbp"] + (_final_soc(case) - e0) * mean_price / 1000.0
 
 sigmas = [0, 5, 10, 20, 40, 80]
 sweep = []
 for s in sigmas:
     fc = (lambda p, h, H, ss=s: perfect_plus_noise(p, h, H, sigma=ss, seed=0))
-    sweep.append(run_mpc(p_da, par, forecast_fn=fc)["profit_gbp"])
+    sweep.append(run_mpc(p_da, par, forecast_fn=fc))
+sweep_profit = [r["profit_gbp"] for r in sweep]
 
-# ---- plot 1: the decomposition ----
+# Plot 1: decomposition
 labels = ["perfect\nforesight", "MPC\nperfect window", "MPC\nsame-hour avg", "MPC\npersistence"]
 vals = [pf, pw, sh, ps]
 colors = ["tab:green", "tab:olive", "tab:blue", "tab:gray"]
@@ -55,9 +62,9 @@ fig.tight_layout()
 fig.savefig(os.path.join(PLOTS, "tier2_decomposition.png"), dpi=150)
 plt.close(fig)
 
-# ---- plot 2: the value of forecast quality ----
+# Plot 2: value of forecast quality
 fig, ax = plt.subplots(figsize=(8.5, 5))
-pct = [v / pf * 100 for v in sweep]
+pct = [v / pf * 100 for v in sweep_profit]
 ax.plot(sigmas, pct, "o-", color="tab:purple", lw=2,
         label="synthetic forecast (truth + growing noise)")
 ax.axhline(sh / pf * 100, ls="--", color="tab:blue", lw=1.3,
@@ -75,18 +82,18 @@ fig.tight_layout()
 fig.savefig(os.path.join(PLOTS, "tier2_forecast_value.png"), dpi=150)
 plt.close(fig)
 
-# ---- results CSV ----
-rows = [
-    {"case": "perfect_foresight", "profit_gbp": round(pf, 1), "pct_of_perfect": round(100.0, 1)},
-    {"case": "mpc_perfect_window", "profit_gbp": round(pw, 1), "pct_of_perfect": round(pw / pf * 100, 1)},
-    {"case": "mpc_same_hour_avg", "profit_gbp": round(sh, 1), "pct_of_perfect": round(sh / pf * 100, 1)},
-    {"case": "mpc_persistence", "profit_gbp": round(ps, 1), "pct_of_perfect": round(ps / pf * 100, 1)},
-]
-for s, v in zip(sigmas, sweep):
-    rows.append({"case": f"mpc_noise_sigma_{s}", "profit_gbp": round(v, 1),
-                 "pct_of_perfect": round(v / pf * 100, 1)})
+# Results CSV
+named = [("perfect_foresight", perfect_result), ("mpc_perfect_window", window_result),
+         ("mpc_same_hour_avg", same_hour_result), ("mpc_persistence", persistence_result)]
+named += [(f"mpc_noise_sigma_{s}", r) for s, r in zip(sigmas, sweep)]
+rows = [{"case": name,
+         "profit_gbp": round(r["profit_gbp"], 1),
+         "pct_of_perfect": round(r["profit_gbp"] / pf * 100, 1),
+         "final_soc_kwh": round(_final_soc(r), 1),
+         "adj_profit_gbp": round(_adj_profit(r), 1)} for name, r in named]
 pd.DataFrame(rows).to_csv(os.path.join(RESULTS, "tier2_mpc.csv"), index=False)
 
 print("wrote: results/tier2_mpc.csv, plots/tier2_decomposition.png, plots/tier2_forecast_value.png")
 for r in rows:
-    print(f"  {r['case']:22} GBP {r['profit_gbp']:9,.0f}  {r['pct_of_perfect']:5.1f}%")
+    print(f"  {r['case']:22} GBP {r['profit_gbp']:9,.0f}  {r['pct_of_perfect']:5.1f}%  "
+          f"end SoC {r['final_soc_kwh']:7.0f} kWh  adj GBP {r['adj_profit_gbp']:9,.0f}")

@@ -1,13 +1,3 @@
-"""
-Tier 1 robustness and sensitivity checks.
-
-Interrogates the AGC result rather than trusting a single case:
-  1. robustness across trip sizes (does it hold beyond the 1320 MW design case?),
-  2. a gain sweep (why T_agc = 8 s and Kp = 0.10 * beta),
-  3. an ablation (droop only / AGC without ramp limits / AGC with ramp limits),
-  4. the participation split.
-Writes CSV tables and a recovery-curve figure, and prints the tables.
-"""
 import os
 
 import numpy as np
@@ -41,7 +31,7 @@ def metrics(t, f):
     }
 
 
-# ---- 1. robustness across trip sizes ----
+# 1. Robustness across trip sizes
 losses = [500, 1000, 1320, 1800]
 rob, curves = [], {}
 for loss in losses:
@@ -74,7 +64,7 @@ fig.tight_layout()
 fig.savefig(os.path.join(PLOTS, "tier1_robustness.png"), dpi=150)
 plt.close(fig)
 
-# ---- 2. gain sweep (justify T_agc = 8 s and Kp = 0.10 * beta) ----
+# 2. Gain sweep, basis for T_agc = 8 s and Kp = 0.10 * beta
 gain = []
 for ta in [6, 8, 10, 12]:
     ps = PowerSystem(agc=flexible_fast_agc(t_agc=ta, kp_fraction=0.10))
@@ -92,9 +82,8 @@ gain_df = pd.DataFrame(gain)
 gain_df.to_csv(os.path.join(RESULTS, "tier1_gain_sweep.csv"), index=False)
 
 
-# ---- 3. ablation: what does each piece buy? ----
+# 3. Ablation: what each control piece changes
 def huge_ramp_mix():
-    """The GB mix with effectively unlimited ramp, to switch the ramp limits off."""
     return [Generator(g.name, g.fuel, g.capacity_mw, g.H, g.R, g.Tg, g.governs,
                       ramp_pct_per_min=1.0e6) for g in gb_mix()]
 
@@ -111,7 +100,7 @@ for label, ps in [
 abl_df = pd.DataFrame(abl)[["case", "nadir_hz", "recovery_s", "overshoot_mhz", "settle_hz"]]
 abl_df.to_csv(os.path.join(RESULTS, "tier1_ablation.csv"), index=False)
 
-# ---- 4. participation split ----
+# 4. Participation split
 part_df = pd.DataFrame([{"unit": k, "participation": v}
                         for k, v in flexible_fast_agc().participation.items()])
 

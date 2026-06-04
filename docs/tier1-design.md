@@ -2,9 +2,9 @@
 
 ## Objective
 After a disturbance the grid model settles at a droop-determined frequency offset
-and never returns to 50.000 Hz. Tier 1 adds proper secondary control so that
+and never returns to 50.000 Hz. In Tier 1 I add proper secondary control so that
 frequency returns to within plus or minus 0.01 Hz of 50.000 within 30 s of the
-generation trip. The trip is modelled as a sustained loss, so there is no separate
+generation trip. I model the trip as a sustained loss, so there is no separate
 "disturbance end" instant in this Tier 1 scenario.
 
 ## Model
@@ -22,7 +22,7 @@ modelling the network, voltage, or reactive power.
 - Single area: no inter-area tie lines and no network power flow.
 - One lumped machine per fuel type, not individual units.
 - Active-power frequency dynamics only: no voltage or reactive side.
-- Linearised around the operating point (the standard LFC assumption).
+- Linearised around the operating point, the standard LFC assumption.
 
 ## Realism features
 - A realistic GB generation mix with representative capacities, inertia, droop, and
@@ -44,8 +44,8 @@ modelling the network, voltage, or reactive power.
 The secondary command is a PI correction on the area control error, allocated across
 units by participation factor and rate-limited by each unit's ramp capability.
 Back-calculation anti-windup compares the total ramp-limited dispatch with the full
-PI command and restrains the integral state when the slow actuators lag. The gains
-are derived from system stiffness rather than hand-tuned:
+PI command and restrains the integral state when the slow actuators lag. I derive the gains
+from system stiffness rather than hand-tuning them:
 
     Ki = beta / T_agc
     Kp = kp_fraction * beta
@@ -58,7 +58,7 @@ over generators that provide primary droop response. `T_agc` is the chosen secon
 restoration time constant; `kp_fraction` sets how much immediate secondary response
 is added before the integral catches up.
 
-## Judgement calls (set and justified by the author)
+## Judgement calls (mine to set and justify)
 - **Ki and Kp**, via the target restoration time T_agc and proportional fraction of
   beta.
 - **The participation split** across fuel types (sums to 1).

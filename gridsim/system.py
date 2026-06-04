@@ -1,20 +1,3 @@
-"""
-Single-area multi-unit load frequency control model, with optional AGC.
-
-Several generators share one system frequency (single bus). System inertia is the
-capacity-weighted sum of unit inertias; primary (droop) response is the
-capacity-weighted sum of governing units' droop gains, plus load damping. A governor
-deadband models real governors ignoring tiny frequency error.
-
-Without an AGC the state is [df, dPm_0..dPm_{N-1}] (droop only). With an AGC two more
-blocks are appended: the integral command P_int and each unit's ramp-limited secondary
-dispatch a_0..a_{N-1}, all per-unit on the system base:
-
-    df       per-unit frequency deviation
-    dPm_i    per-unit mechanical power deviation of generator i
-    P_int    integral part of the secondary power command
-    a_i      secondary power actually dispatched to generator i (ramp limited)
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -28,8 +11,6 @@ from .plants import Generator, gb_mix
 
 @dataclass
 class PowerSystem:
-    """Single-area system of multiple generators, with optional secondary control."""
-
     generators: list[Generator] = field(default_factory=gb_mix)
     D: float = 1.0               # load damping [pu power / pu freq]
     f_nom: float = 50.0          # nominal frequency [Hz]
@@ -39,30 +20,25 @@ class PowerSystem:
     agc: AGC | None = None       # secondary controller (None = droop only)
     fleet: FleetResponse | None = None   # battery fleet fast frequency response (None = off)
 
-    # ---- system aggregates ------------------------------------------------
+    # System aggregates
     @property
     def H_sys(self) -> float:
-        """Capacity-weighted system inertia constant on the system base [s]."""
         return sum(g.H * g.capacity_mw for g in self.generators) / self.s_base_mw
 
     def droop_gain(self, g: Generator) -> float:
-        """System-base droop gain of a generator, (MW_i/MW_base)/R_i, or 0."""
         if not g.governs or g.R <= 0.0:
             return 0.0
         return (g.capacity_mw / self.s_base_mw) / g.R
 
     @property
     def beta(self) -> float:
-        """System frequency response characteristic: sum of droop gains plus damping."""
         return sum(self.droop_gain(g) for g in self.generators) + self.D
 
     def ramp_pu_per_s(self, g: Generator) -> float:
-        """Secondary ramp limit of a generator in per-unit (system base) per second."""
         mw_per_s = (g.ramp_pct_per_min / 100.0) * g.capacity_mw / 60.0
         return mw_per_s / self.s_base_mw
 
     def _deadband(self, df_pu: float) -> float:
-        """Governor deadband: ignore errors within the band, subtract it beyond."""
         if self.deadband_hz <= 0.0:
             return df_pu
         db = self.deadband_hz / self.f_nom
@@ -70,7 +46,7 @@ class PowerSystem:
             return 0.0
         return df_pu - np.sign(df_pu) * db
 
-    # ---- dynamics ---------------------------------------------------------
+    # Dynamics
     def derivatives(self, y: np.ndarray, dp_pu: float) -> np.ndarray:
         n = len(self.generators)
         df = y[0]
@@ -83,8 +59,8 @@ class PowerSystem:
         else:
             a = np.zeros(n)
 
-        # battery fleet fast frequency response (Tier 3 coupling): synthetic droop injects
-        # power (numerator); synthetic inertia raises the effective inertia (denominator)
+        # Battery fleet fast frequency response (Tier 3 coupling): inject power with
+        # synthetic droop (numerator) and raise the effective inertia with synthetic inertia (denominator)
         h_eff = self.H_sys
         p_fleet = 0.0
         if self.fleet is not None:
@@ -94,7 +70,7 @@ class PowerSystem:
         # swing equation (load damping sees the full error)
         ddf = (1.0 / (2.0 * h_eff)) * (pm.sum() - dp_pu - self.D * df + p_fleet)
 
-        # each governor tracks droop response plus its AGC setpoint a_i
+        # Each governor tracks its droop response plus its AGC setpoint a_i
         dpm = np.empty(n)
         for i, g in enumerate(self.generators):
             dpm[i] = (1.0 / g.Tg) * (-pm[i] - self.droop_gain(g) * df_droop + a[i])
@@ -102,14 +78,14 @@ class PowerSystem:
         if self.agc is None:
             return np.concatenate(([ddf], dpm))
 
-        # secondary loop: PI command, with back-calculation anti-windup on the integral
+        # Secondary loop: PI command with back-calculation anti-windup on the integral
         ki = self.agc.ki(self.beta)
         kp = self.agc.kp(self.beta)
         a_total = a.sum()
         p_secondary = p_int + kp * (-df)
         dp_int = ki * (-df) + (1.0 / self.agc.t_aw) * (a_total - p_secondary)
 
-        # each unit moves toward its share, capped by its ramp limit
+        # Units move toward their participation share, capped by their ramp limits
         da = np.empty(n)
         for i, g in enumerate(self.generators):
             target = self.agc.share(g.name) * p_secondary
@@ -135,11 +111,6 @@ class PowerSystem:
 
     def simulate(self, duration: float = 60.0, trip_time: float = 5.0,
                  loss_mw: float = 1320.0, return_states: bool = False):
-        """Simulate a sustained generation loss.
-
-        Returns (time [s], frequency [Hz]), or (time, frequency, states) if
-        `return_states`, where states has shape (steps, state_size).
-        """
         dp_pu = loss_mw / self.s_base_mw
         n = int(duration / self.dt)
         t = np.linspace(0.0, duration, n)
@@ -157,6 +128,5 @@ class PowerSystem:
         return t, f
 
     def steady_state_offset_hz(self, loss_mw: float) -> float:
-        """Analytic droop offset (Hz) ignoring the deadband: -loss_pu / beta, in Hz."""
         dp_pu = loss_mw / self.s_base_mw
         return self.f_nom * (-dp_pu / self.beta)

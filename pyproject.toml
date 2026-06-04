@@ -1,10 +1,10 @@
 [project]
 name = "grid-aware-battery"
 version = "0.1.0"
-description = "Tier 1 grid frequency model with AGC secondary control for the Piclo grid-aware battery challenge"
+description = "Grid-aware battery: AGC frequency control (Tier 1), rolling-horizon arbitrage MPC (Tier 2), and reserve, fleet, and supervisor coupling (Tier 3) for the Piclo challenge"
 requires-python = ">=3.10"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
-filterwarnings = ["ignore"]   # hush the PuLP/CBC solver deprecation noise
+filterwarnings = ["ignore"]   # PuLP/CBC solver deprecation noise

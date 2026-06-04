@@ -1,15 +1,3 @@
-"""
-Tier 3 sensitivity: the reserve frontier under perfect foresight vs a real forecast.
-
-Stage 1's headline Pareto uses perfect foresight to isolate the price of the reserve
-constraint from forecast error. This script re-runs the reserve sweep a second way, with
-the realistic same-hour-average forecast driving the rolling MPC, so we can show both: the
-theoretical price of reliability (perfect foresight) and the operational version an actual
-operator sees. The finding: the two curves differ in shape, not just level. Under perfect
-foresight the reserve is costly and convex; under a real forecast it is nearly free up to
-high reserve, because a poor forecast was not using the reserved capacity anyway. Writes
-results/tier3_pareto_sensitivity.csv and plots/tier3_pareto_sensitivity.png.
-"""
 import os
 
 import pandas as pd
@@ -63,7 +51,7 @@ ax2.plot(df["reserve_kw"], df["perfect_pct"], "o-", lw=1.9, color="#1f6feb", lab
 ax2.plot(df["reserve_kw"], df["realistic_pct"], "s-", lw=1.9, color="#d29922", label="realistic forecast (MPC)")
 ax2.set_xlabel("Reserved response power (kW)")
 ax2.set_ylabel("Profit kept (% of own 0% reserve)")
-ax2.set_title("Normalised: costly with perfect foresight, nearly free with a real forecast")
+ax2.set_title("Normalised: costly with perfect foresight, little cost with this forecast")
 ax2.legend()
 ax2.grid(alpha=0.3)
 fig.suptitle("Tier 3 reserve frontier: theoretical (perfect foresight) vs operational (real forecast)")
@@ -71,6 +59,6 @@ fig.tight_layout()
 fig.savefig(os.path.join(PLOTS, "tier3_pareto_sensitivity.png"), dpi=150)
 plt.close(fig)
 
-print(f"\nperfect baseline (0%):   GBP {pbase:,.0f}   (Stage 1 headline)")
-print(f"realistic baseline (0%): GBP {rbase:,.0f}   (should match the Tier 2 same-hour 3,927)")
+print(f"\nperfect baseline (0%):   GBP {pbase:,.0f}   (Stage 1 reference)")
+print(f"realistic baseline (0%): GBP {rbase:,.0f}   (Tier 2 same-hour reference: 3,927)")
 print(df.to_string(index=False))

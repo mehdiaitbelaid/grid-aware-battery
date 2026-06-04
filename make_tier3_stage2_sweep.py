@@ -1,13 +1,3 @@
-"""
-Tier 3 Stage 2, fuller story: fleet-size sweep, and the severe trip.
-
-Part A: on the standard 1320 MW trip, sweep the fleet from 0 to 2 GW and trace nadir and
-RoCoF versus fleet size. Shows how much fast response each MW of fleet buys.
-Part B: on the severe 1800 MW trip, the case Tier 1 restored but missed the 30 s target on,
-compare fleet sizes and see how much fast response is needed to help the worst case.
-
-Writes results/tier3_stage2_sweep.csv, results/tier3_stage2_severe.csv, and the two plots.
-"""
 import os
 
 import numpy as np
@@ -48,7 +38,7 @@ def run(loss_mw, p_fleet_mw):
     return t, f, metrics(t, f)
 
 
-# ---- Part A: fleet-size sweep on the 1320 MW trip ----
+# Part A: fleet-size sweep on the 1320 MW trip
 FLEETS = [0, 250, 500, 1000, 1500, 2000]
 rowsA = []
 for p in FLEETS:
@@ -73,7 +63,7 @@ fig.tight_layout()
 fig.savefig(os.path.join(PLOTS, "tier3_stage2_sweep.png"), dpi=150)
 plt.close(fig)
 
-# ---- Part B: severe 1800 MW trip at several fleet sizes ----
+# Part B: severe 1800 MW trip at several fleet sizes
 SEVERE = [0, 500, 1000, 2000]
 rowsB, curvesB = [], {}
 for p in SEVERE:
