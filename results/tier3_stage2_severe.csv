@@ -1,0 +1,5 @@
+fleet_mw,nadir_hz,rocof_hz_s,recovery_s,settle_hz,meets_30s,above_49p2
+0,49.74,-0.434,34.0,49.9993,False,True
+500,49.768,-0.422,22.9,49.9993,True,True
+1000,49.791,-0.41,27.1,49.9993,True,True
+2000,49.824,-0.389,32.9,49.9993,False,True

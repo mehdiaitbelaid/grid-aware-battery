@@ -1,4 +1,4 @@
-# Tier 3 Stage 1: frequency response reserve frontier
+# Tier 3: market reserve (Stage 1) and physical response (Stage 2)
 
 ## Purpose
 Tier 3 asks the battery to connect market behaviour to grid frequency. This first stage
@@ -77,9 +77,57 @@ forecast, reserving capacity is close to free up to a large fraction of rated po
 because the arbitrage it displaces is value the forecast could not have captured. See
 `plots/tier3_pareto_sensitivity.png`.
 
-## Limitations
+## Stage 1 limitations
 - This is an availability constraint, not yet a live low-frequency dispatch controller.
 - The sweep uses perfect foresight to isolate the reserve cost; realistic forecast-based
   operation would sit lower in absolute profit.
 - The battery is the original 1 MW / 2 MWh asset. A visible system-frequency impact would
   require scaling to an aggregated fleet or explicitly reporting per-MW impact.
+
+## Stage 2: what the reserve buys physically
+Stage 1 sized the reserve in the market. Stage 2 puts that reserved power to work inside the
+Tier 1 frequency model and measures what it buys. The battery is scaled to an aggregated
+fleet, because a single 1 MW unit is invisible on a 30 GW system; the economics stay per MW,
+only the physics is scaled.
+
+The fleet responds two ways (`gridsim/fleet.py`), both entering the swing equation directly
+(`gridsim/system.py`):
+- synthetic droop: inject power proportional to the frequency drop, reaching the full
+  reserved power by 0.5 Hz of deviation, capped at the reserve. It enters as an extra power
+  injection and lifts the nadir.
+- synthetic inertia: emulate 6 s of inertia on the fleet rating. It enters as a larger
+  effective system inertia and lowers the initial RoCoF.
+
+### Fleet-size sweep (1320 MW trip)
+| fleet | nadir | RoCoF | recovery |
+|---:|---:|---:|---:|
+| 0 | 49.808 Hz | -0.318 Hz/s | 21.8 s |
+| 500 MW | 49.828 Hz | -0.309 Hz/s | 24.3 s |
+| 1000 MW | 49.844 Hz | -0.301 Hz/s | 26.2 s |
+| 2000 MW | 49.868 Hz | -0.285 Hz/s | 29.1 s |
+
+Nadir rises strongly with fleet size, about +30 mHz per GW. RoCoF improves only weakly, about
+10% even at 2 GW, because synthetic inertia from even a large fleet adds little stored energy
+to a 30 GW system. A battery is a strong lever on the dip and a weak one on the slope.
+
+### Severe 1800 MW trip
+The 1800 MW trip is the case Tier 1 held above the floor but missed the 30 s target on.
+| fleet | nadir | recovery | meets 30 s |
+|---:|---:|---:|:--:|
+| 0 | 49.740 Hz | 34.0 s | no |
+| 500 MW | 49.768 Hz | 22.9 s | yes |
+| 1000 MW | 49.791 Hz | 27.1 s | yes |
+| 2000 MW | 49.824 Hz | 32.9 s | no |
+
+A 500 MW fleet rescues the case: recovery drops from 34 s to 22.9 s, inside the target,
+because the lifted nadir leaves less for the AGC to claw back. But a 2000 MW fleet, despite
+the best nadir, misses the target again at 32.9 s: too much fast response makes the system
+heavy and the undamped droop overshoots the restoration, so the settle drags. There is a
+sweet spot. This tension motivates the Stage 3 supervisor, which would take the dip benefit
+and then taper the response as frequency normalises.
+
+### Stage 2 scope
+- The fleet provides only upward (discharge) response to low-frequency events.
+- Synthetic inertia is modelled as an addition to the system inertia, the exact resolution of
+  a df/dt response; a real implementation must filter the noisy df/dt measurement.
+- The fleet size and droop envelope are representative; the sweeps show the sensitivity.

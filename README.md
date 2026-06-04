@@ -13,8 +13,9 @@ perfect foresight optimiser with a rolling-horizon MPC.
 - **Tier 2 (markets).** Replace the perfect foresight battery LP with a rolling
   horizon MPC that acts on a price forecast. Done.
 - **Tier 3 (coupling).** Let the battery's market behaviour respond to grid
-  frequency state through a supervisory controller. Stage 1 added: reserve-constrained
-  arbitrage frontier; full frequency-state supervisor still to follow.
+  frequency state through a supervisory controller. Stages 1 and 2 added: the reserve
+  arbitrage frontier, and the battery's physical frequency response in the grid model.
+  The live frequency-state supervisor is still to follow.
 
 ## Structure
 
@@ -60,11 +61,18 @@ foresight, quantifying the value destroyed by price uncertainty. See
 `plots/tier2_decomposition.png`, `plots/tier2_forecast_value.png`, `results/tier2_mpc.csv`,
 and `docs/tier2.md`.
 
-Tier 3 Stage 1 is implemented as a reserve-constrained arbitrage study. Sweeping reserved
-upward response from 0 to 1000 kW traces the profit-vs-availability frontier: reserving
-500 kW for 30 minutes keeps about 67% of perfect foresight arbitrage profit. See
-`plots/tier3_pareto.png`, `results/tier3_pareto.csv`, and `docs/tier3.md`. The remaining
-Tier 3 work is the live frequency-state supervisor and physical grid-response coupling.
+Tier 3 Stage 1 is a reserve study: sweeping reserved upward response from 0 to 1000 kW
+traces the profit against availability frontier, where reserving 500 kW for 30 minutes
+keeps about 67% of perfect foresight arbitrage. A forecast sensitivity check shows that
+cost is an upper bound: under a realistic forecast the reserve is nearly free, because a
+weak forecast was not using the held back capacity anyway.
+
+Tier 3 Stage 2 puts the reserved power into the frequency model as an aggregated fleet with
+synthetic droop and synthetic inertia. On the severe 1800 MW trip that Tier 1 missed the
+30 s target on, a 500 MW fleet restores within target (34 to 22.9 s), while too large a
+fleet over-helps the dip and drags the settle, a sweet spot. See `docs/tier3.md`,
+`plots/tier3_pareto.png`, and `plots/tier3_stage2_severe.png`. The remaining Tier 3 work is
+the live frequency-state supervisor that switches and tapers between arbitrage and response.
 
 Regenerate the results:
 
@@ -72,6 +80,8 @@ Regenerate the results:
 python make_tier1_figures.py
 python make_tier2_figures.py
 python make_tier3_pareto.py
+python make_tier3_sensitivity.py
+python make_tier3_stage2_sweep.py
 ```
 
 Run the tests:

@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .agc import AGC
+from .fleet import FleetResponse
 from .plants import Generator, gb_mix
 
 
@@ -36,6 +37,7 @@ class PowerSystem:
     dt: float = 0.01             # integration step [s]
     deadband_hz: float = 0.015   # governor deadband [Hz] (GB primary response ~15 mHz)
     agc: AGC | None = None       # secondary controller (None = droop only)
+    fleet: FleetResponse | None = None   # battery fleet fast frequency response (None = off)
 
     # ---- system aggregates ------------------------------------------------
     @property
@@ -81,8 +83,16 @@ class PowerSystem:
         else:
             a = np.zeros(n)
 
+        # battery fleet fast frequency response (Tier 3 coupling): synthetic droop injects
+        # power (numerator); synthetic inertia raises the effective inertia (denominator)
+        h_eff = self.H_sys
+        p_fleet = 0.0
+        if self.fleet is not None:
+            p_fleet = self.fleet.injection_pu(self.to_hz(df), self.f_nom, self.s_base_mw)
+            h_eff = self.H_sys + self.fleet.added_H_s(self.s_base_mw)
+
         # swing equation (load damping sees the full error)
-        ddf = (1.0 / (2.0 * self.H_sys)) * (pm.sum() - dp_pu - self.D * df)
+        ddf = (1.0 / (2.0 * h_eff)) * (pm.sum() - dp_pu - self.D * df + p_fleet)
 
         # each governor tracks droop response plus its AGC setpoint a_i
         dpm = np.empty(n)
