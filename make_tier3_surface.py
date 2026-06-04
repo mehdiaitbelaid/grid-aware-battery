@@ -1,6 +1,3 @@
-"""Sweep reserved power and fleet ramp rate together on the 1800 MW trip and map the nadir.
-They interact: a big reserve is wasted with a slow ramp, a fast ramp has little to give with
-a small reserve, so you need both."""
 import os
 
 import numpy as np

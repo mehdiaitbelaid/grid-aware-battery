@@ -1,5 +1,3 @@
-"""Response speed: at a fixed 500 MW reserve, sweep the fleet ramp rate on the 1800 MW trip.
-A fast ramp lifts the nadir, a slow one arrives too late. Faster also cycles harder."""
 import os
 
 import numpy as np

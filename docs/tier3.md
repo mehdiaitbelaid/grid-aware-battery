@@ -145,11 +145,13 @@ Sweeping reserve and ramp rate together (`make_tier3_surface.py`,
 `plots/tier3_surface.png`) shows the two interact: at 50 MW/s the nadir is 49.745 Hz whatever
 the reserve, because the response arrives after the dip, while at 1000 MW/s it climbs from
 49.754 Hz at 250 MW reserve to 49.815 Hz at 2 GW. A large reserve is wasted without speed,
-and speed has little to give without reserve. Each reserve level also carries its Stage 1
-arbitrage cost, so this is the three-way trade-off a flexibility provider faces: arbitrage
-profit against response availability against response speed. The droop envelope, full
-response by 0.5 Hz of deviation, follows the shape of National Grid's Dynamic Containment;
-DC, Dynamic Moderation, and Dynamic Regulation are the GB products that pay for this.
+and speed has little to give without reserve. Each reserve level also has an arbitrage cost
+from the Stage 1 frontier (a separate result; this surface holds only the nadir), so the two
+together describe the three-way trade-off a flexibility provider faces: arbitrage profit
+against response availability against response speed. The droop envelope, full response by
+0.5 Hz of deviation, is shaped like NESO's Dynamic Containment; NESO also runs Dynamic
+Moderation and Dynamic Regulation, each with published deadband and speed requirements a
+production version would match.
 
 ## Stage 3: the supervisor
 Stages 1 and 2 left two halves: the market reserve and the physical response. In Stage 3 I built the

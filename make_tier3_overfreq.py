@@ -1,5 +1,3 @@
-"""Over-frequency: a 1320 MW generation surplus, with the symmetric fleet absorbing to
-contain the rise, the mirror of the nadir case."""
 import os
 
 import numpy as np

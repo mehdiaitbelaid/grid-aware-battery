@@ -83,11 +83,15 @@ Regenerate the results:
 
 ```
 python make_tier1_figures.py
+python make_tier1_validation.py
 python make_tier2_figures.py
 python make_tier3_pareto.py
 python make_tier3_sensitivity.py
 python make_tier3_stage2_sweep.py
 python make_tier3_stage3.py
+python make_tier3_overfreq.py
+python make_tier3_speed.py
+python make_tier3_surface.py
 ```
 
 Run the tests:
