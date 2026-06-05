@@ -79,6 +79,11 @@ on the live frequency, and tapers the response during recovery to protect the se
 severe 1800 MW trip it cancels charging, supports the grid, then returns to arbitrage with no
 chatter. See `coupling/`, `docs/tier3.md`, and `plots/tier3_stage3_timeline.png`.
 
+I added three runs to round out the physics: the symmetric fleet contains an over-frequency
+surplus (`plots/tier3_overfreq.png`), a ramp-rate sweep shows response speed is a second axis
+beyond reserved power (`plots/tier3_speed.png`), and sweeping reserve and speed together maps
+the nadir surface, where you need both (`plots/tier3_surface.png`).
+
 Regenerate the results:
 
 ```
