@@ -46,3 +46,17 @@ def test_causal_mpc_cannot_beat_the_clairvoyant_optimum():
     ceiling = solve_arbitrage(p, par, e_start=par.e0_kwh)["profit_gbp"]   # no end rule means clairvoyant
     mpc = run_mpc(p, par, forecast_fn=perfect_window)["profit_gbp"]
     assert mpc <= ceiling + 1.0
+
+
+def test_degradation_cost_reduces_throughput_and_is_neutral_at_zero():
+    _, p_da = load_prices(DATA)
+    par = BatteryParams()
+    base = solve_arbitrage(p_da, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh)
+    zero = solve_arbitrage(p_da, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh,
+                           degradation_cost_per_mwh=0.0)
+    assert abs(zero["profit_gbp"] - base["profit_gbp"]) < 1e-6        # zero cost changes nothing
+
+    priced = solve_arbitrage(p_da, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh,
+                             degradation_cost_per_mwh=10.0)
+    assert priced["profit_gbp"] <= base["profit_gbp"] + 1e-6          # wear cannot raise net profit
+    assert priced["discharge_kw"].sum() <= base["discharge_kw"].sum() + 1e-6   # nor increase cycling

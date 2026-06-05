@@ -208,3 +208,29 @@ for part of an aggregated fleet or an illustrative scaling, not a standalone bid
 auction cleared in 4-hour EFA blocks with eligibility, bidding, clearing, metering,
 state-of-charge, and performance rules, so this is an upper bound on the modelled opportunity
 cost, not realisable income.
+
+## Degradation sensitivity
+The net value above ignores battery wear. Cycling a battery consumes cycle life, so a real
+operator pays a throughput cost on every MWh moved. I add this as an optional term in the
+arbitrage objective (`solve_arbitrage(..., degradation_cost_per_mwh=...)`, default 0 so the
+baseline is unchanged) and sweep it, because the cost is uncertain. A defensible basis is the
+cell capex divided by the cycle life: at about GBP 100 to 150 per kWh and 5,000 to 10,000 full
+cycles, that is roughly GBP 10 to 20 per MWh discharged (`make_tier3_degradation.py`,
+`results/tier3_degradation.csv`, `plots/tier3_degradation.png`).
+
+| degradation cost | arbitrage (perfect foresight) | cycling | break-even DC price |
+|---:|---:|---:|---:|
+| GBP 0/MWh | GBP 16,176 | 293 MWh | GBP 7.46/MW/h |
+| GBP 5/MWh | GBP 14,937 | 208 MWh | GBP 6.97/MW/h |
+| GBP 10/MWh | GBP 14,011 | 168 MWh | GBP 6.65/MW/h |
+| GBP 20/MWh | GBP 12,482 | 142 MWh | GBP 6.18/MW/h |
+| GBP 25/MWh | GBP 11,791 | 135 MWh | GBP 5.98/MW/h |
+
+Two things stand out. At a central GBP 10 per MWh, cycling falls 43% but profit only 13%,
+because the trades degradation removes are the marginal, low-spread ones, not the large daily
+swing. And the reserve break-even DC price falls with it, from GBP 7.46 to GBP 6.65/MW/h. The
+reason is structural: arbitrage cycles hard every day while a frequency reserve sits idle until
+a rare event, so pricing wear hits arbitrage harder than it hits the reserve. Accounting for
+degradation therefore strengthens the frequency-response case rather than weakening it. The
+convention is cost per MWh discharged, and like the Stage 1 frontier this uses perfect
+foresight, so it is the theoretical bound, not a realised operating cost.

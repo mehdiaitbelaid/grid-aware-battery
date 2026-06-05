@@ -92,6 +92,11 @@ capacity against the arbitrage it costs (`plots/tier3_value.png`), giving a brea
 GBP 7.5/MW/h against perfect foresight and a low opportunity cost under the simple forecast. The
 500 kW stands for part of an aggregated fleet, since DC offers are at least 1 MW.
 
+A degradation sensitivity prices battery wear as a throughput cost and sweeps it: at a central
+GBP 10 per MWh the break even falls from GBP 7.46 to GBP 6.65/MW/h, because arbitrage cycles
+hard while the reserve sits idle, so pricing wear strengthens the response case
+(`plots/tier3_degradation.png`).
+
 Regenerate the results:
 
 ```bash
@@ -107,6 +112,7 @@ python make_tier2_ablation.py     # terminal-value ablation, the honest null res
 python make_tier3_pareto.py       # reserve vs arbitrage frontier (perfect foresight)
 python make_tier3_sensitivity.py  # the same frontier under a realistic forecast
 python make_tier3_value.py        # DC break-even, the punchline (uses the sensitivity csv above)
+python make_tier3_degradation.py  # how battery wear shifts the reserve break even
 python make_tier3_stage2_sweep.py # what the reserve buys inside the frequency model
 python make_tier3_stage3.py       # the supervisor event timeline
 python make_tier3_overfreq.py     # symmetric over-frequency containment

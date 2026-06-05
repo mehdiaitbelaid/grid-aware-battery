@@ -28,7 +28,8 @@ def load_prices(path: str):
 def solve_arbitrage(prices, params: BatteryParams = BatteryParams(),
                     e_start: float | None = None, e_end_min: float | None = None,
                     terminal_price: float | None = None,
-                    reserve_power_kw: float = 0.0, reserve_energy_kwh: float = 0.0):
+                    reserve_power_kw: float = 0.0, reserve_energy_kwh: float = 0.0,
+                    degradation_cost_per_mwh: float = 0.0):
     par = params
     T = len(prices)
     e_start = par.e0_kwh if e_start is None else e_start
@@ -42,6 +43,11 @@ def solve_arbitrage(prices, params: BatteryParams = BatteryParams(),
     obj = lpSum(prices[t] * (pdis[t] - pch[t]) * par.dt_h / 1000.0 for t in range(T))
     if terminal_price is not None:
         obj = obj + terminal_price * e[T] / 1000.0
+    # Degradation: a throughput cost in GBP per MWh discharged, charged against the cycle it
+    # uses. Default 0 reproduces the coursework baseline exactly; a positive value drops the
+    # marginal trades whose price spread does not beat the wear they cause.
+    if degradation_cost_per_mwh > 0.0:
+        obj = obj - lpSum(degradation_cost_per_mwh * pdis[t] * par.dt_h / 1000.0 for t in range(T))
     m += obj
 
     m += e[0] == e_start
