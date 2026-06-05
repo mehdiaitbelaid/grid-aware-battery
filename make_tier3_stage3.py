@@ -24,11 +24,12 @@ system = PowerSystem(agc=flexible_fast_agc())
 supervisor = Supervisor()
 fleet = FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0)
 
-t, f, modes, p_batt = run_coupled(system, supervisor, fleet, arb_setpoint_mw=ARB,
-                                  loss_mw=LOSS, trip_time=TRIP, duration=DURATION)
+t, f, modes, p_batt, soc = run_coupled(system, supervisor, fleet, arb_setpoint_mw=ARB,
+                                       loss_mw=LOSS, trip_time=TRIP, duration=DURATION)
 tt = t - TRIP
 
-pd.DataFrame({"time_s": t, "freq_hz": f, "mode": modes, "battery_mw": p_batt}).to_csv(
+pd.DataFrame({"time_s": t, "freq_hz": f, "mode": modes, "battery_mw": p_batt,
+              "soc_mwh": soc}).to_csv(
     os.path.join(RESULTS, "tier3_stage3_timeline.csv"), index=False)
 
 # mode transitions and headline numbers
@@ -38,6 +39,8 @@ for i in range(1, len(modes)):
         transitions.append((modes[i], round(t[i] - TRIP, 2)))
 nadir = float(f.min())
 peak_response = float(p_batt.max())
+reserve_floor = fleet.reserve * 0.5            # MWh needed to sustain the reserve for 30 min
+discharge_mwh = float(np.clip(p_batt, 0.0, None).sum() * system.dt / 3600.0)   # energy the response delivered
 
 COLORS = {ARBITRAGE: "#cdeccd", RESERVE: "#fbe8a6", RESPONSE: "#f6c3c3", RECOVERY: "#c7d8f5"}
 
@@ -50,7 +53,7 @@ def shade(ax):
             start = i
 
 
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8.6), sharex=True)
 shade(ax1)
 ax1.axhline(50.0, ls="--", color="black", lw=0.8)
 ax1.axhline(49.95, ls=":", color="green", lw=0.9)
@@ -68,8 +71,19 @@ shade(ax2)
 ax2.axhline(0.0, color="black", lw=0.6)
 ax2.plot(tt, p_batt, color="#1f6feb", lw=1.6)
 ax2.set_ylabel("Battery power (MW)\n(+ discharge / - charge)")
-ax2.set_xlabel("Time since trip (s)")
 ax2.grid(alpha=0.2)
+
+shade(ax3)
+ax3.axhline(reserve_floor, ls=":", color="red", lw=1.0, label=f"reserve floor {reserve_floor:.0f} MWh")
+ax3.plot(tt, soc, color="#2ca02c", lw=1.6)
+ax3.text(0.015, 0.90,
+         f"response delivered {discharge_mwh:.2f} MWh ({discharge_mwh / reserve_floor * 100:.2f}% of reserve)",
+         transform=ax3.transAxes, fontsize=8, va="top",
+         bbox=dict(boxstyle="round", fc="white", ec="0.7", alpha=0.85))
+ax3.set_ylabel("Fleet energy (MWh)")
+ax3.set_xlabel("Time since trip (s)")
+ax3.legend(loc="lower right", fontsize=8)
+ax3.grid(alpha=0.2)
 fig.tight_layout()
 fig.savefig(os.path.join(PLOTS, "tier3_stage3_timeline.png"), dpi=150)
 plt.close(fig)
@@ -79,3 +93,6 @@ for m, s in transitions:
     print(f"  {m:9s}  at {s:+.2f} s")
 print(f"\nnadir: {nadir:.3f} Hz   peak battery response: {peak_response:.0f} MW   "
       f"arbitrage setpoint: {ARB:.0f} MW")
+print(f"fleet energy: start {soc[0]:.0f} MWh, min {soc.min():.0f} MWh, floor {reserve_floor:.0f} MWh "
+      f"({'floor held' if soc.min() >= reserve_floor - 1e-6 else 'FLOOR BREACHED'}); "
+      f"response delivered {discharge_mwh:.2f} MWh, {discharge_mwh / reserve_floor * 100:.2f}% of reserve energy")

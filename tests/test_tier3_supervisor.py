@@ -39,12 +39,22 @@ def test_no_chatter_in_the_sticky_band():
         assert s.update(f) == ARBITRAGE
 
 
+def test_no_chatter_at_the_response_boundary():
+    # dithering across 49.80 in recovery must not flip the label back to RESPONSE
+    s = Supervisor()
+    s.update(49.75)                                  # RESPONSE
+    s.update(49.82)                                  # RECOVERY
+    held = [s.update(f) for f in (49.81, 49.79, 49.81, 49.79, 49.81)]
+    assert all(m == RECOVERY for m in held)          # the boundary now has hysteresis
+    assert s.update(49.74) == RESPONSE               # a real re-dip past the re-arm gap still re-triggers
+
+
 def test_coupled_run_exhibits_all_modes_without_chatter():
     system = PowerSystem(agc=flexible_fast_agc())
     sup = Supervisor()
     fleet = FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0)
-    _, f, modes, p = run_coupled(system, sup, fleet, arb_setpoint_mw=-150.0,
-                                 loss_mw=1800.0, trip_time=20.0, duration=80.0)
+    _, f, modes, p, _ = run_coupled(system, sup, fleet, arb_setpoint_mw=-150.0,
+                                    loss_mw=1800.0, trip_time=20.0, duration=80.0)
     assert {ARBITRAGE, RESERVE, RESPONSE, RECOVERY} <= set(modes)
     assert f.min() < 49.8                         # the event really crossed the trigger
     assert p.max() > 0.0                          # the battery discharged in response

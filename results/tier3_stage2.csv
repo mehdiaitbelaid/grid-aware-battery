@@ -1,3 +1,3 @@
-case,nadir_hz,rocof_hz_s,recovery_s,settle_hz
-AGC only (no battery),49.808,-0.318,21.8,50.0
-AGC + 500 MW fleet,49.828,-0.309,24.3,50.0002
+case,nadir_hz,rocof_500ms_hz_s,rocof_peak_hz_s,recovery_s,settle_hz
+AGC only (no battery),49.808,-0.271,-0.318,21.8,50.0
+AGC + 500 MW fleet,49.828,-0.253,-0.309,24.3,50.0002

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from gridsim.agc import flexible_fast_agc
 from gridsim.fleet import FleetResponse
 from gridsim.system import PowerSystem
-from scenarios.gen_trip import recovery_time
+from scenarios.gen_trip import recovery_time, rocof_peak, rocof_window
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(ROOT, "results")
@@ -22,10 +22,10 @@ DURATION = 120.0
 
 
 def metrics(t, f):
-    rocof = float(np.gradient(f, t)[(t >= TRIP) & (t <= TRIP + 0.5)].min())
     rec = recovery_time(t, f, trip_time=TRIP)
     return {"nadir_hz": round(float(f.min()), 3),
-            "rocof_hz_s": round(rocof, 3),
+            "rocof_500ms_hz_s": round(rocof_window(t, f, TRIP), 3),
+            "rocof_peak_hz_s": round(rocof_peak(t, f, TRIP), 3),
             "recovery_s": (round(rec, 1) if np.isfinite(rec) else None),
             "settle_hz": round(float(f[-1]), 4)}
 
@@ -50,7 +50,7 @@ dfA.to_csv(os.path.join(RESULTS, "tier3_stage2_sweep.csv"), index=False)
 fig, ax1 = plt.subplots(figsize=(9, 5.2))
 ax2 = ax1.twinx()
 ax1.plot(dfA.fleet_mw, dfA.nadir_hz, "o-", color="#1f6feb", lw=1.9, label="nadir (Hz)")
-ax2.plot(dfA.fleet_mw, dfA.rocof_hz_s, "s--", color="#d29922", lw=1.9, label="RoCoF (Hz/s)")
+ax2.plot(dfA.fleet_mw, dfA.rocof_500ms_hz_s, "s--", color="#d29922", lw=1.9, label="RoCoF 500 ms avg (Hz/s)")
 ax1.set_xlabel("Fleet size (MW)")
 ax1.set_ylabel("Nadir (Hz)", color="#1f6feb")
 ax2.set_ylabel("RoCoF (Hz/s)", color="#d29922")
@@ -73,8 +73,8 @@ for p in SEVERE:
     m["meets_30s"] = bool(m["recovery_s"] is not None and m["recovery_s"] <= 30.0)
     m["above_49p2"] = bool(f.min() >= 49.2)
     rowsB.append(m)
-dfB = pd.DataFrame(rowsB)[["fleet_mw", "nadir_hz", "rocof_hz_s", "recovery_s",
-                           "settle_hz", "meets_30s", "above_49p2"]]
+dfB = pd.DataFrame(rowsB)[["fleet_mw", "nadir_hz", "rocof_500ms_hz_s", "rocof_peak_hz_s",
+                           "recovery_s", "settle_hz", "meets_30s", "above_49p2"]]
 dfB.to_csv(os.path.join(RESULTS, "tier3_stage2_severe.csv"), index=False)
 
 fig, ax = plt.subplots(figsize=(9, 5.2))

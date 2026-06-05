@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from gridsim.agc import flexible_fast_agc
 from gridsim.plants import Generator, gb_mix
 from gridsim.system import PowerSystem
-from scenarios.gen_trip import recovery_time
+from scenarios.gen_trip import recovery_time, rocof_peak, rocof_window
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(ROOT, "results")
@@ -20,11 +20,11 @@ TRIP = 5.0
 
 
 def metrics(t, f):
-    rocof = float(np.gradient(f, t)[(t >= TRIP) & (t <= TRIP + 0.5)].min())
     rec = recovery_time(t, f, trip_time=TRIP)
     return {
         "nadir_hz": round(float(f.min()), 3),
-        "rocof_hz_s": round(rocof, 3),
+        "rocof_500ms_hz_s": round(rocof_window(t, f, TRIP), 3),   # grid-code style window average
+        "rocof_peak_hz_s": round(rocof_peak(t, f, TRIP), 3),      # steepest instantaneous (conservative)
         "recovery_s": (round(rec, 1) if np.isfinite(rec) else None),
         "overshoot_mhz": round(max(float(f.max()) - 50.0, 0.0) * 1000, 1),
         "settle_hz": round(float(f[-1]), 4),
@@ -41,10 +41,11 @@ for loss in losses:
     m.update(loss_mw=loss,
              meets_30s=bool(m["recovery_s"] is not None and m["recovery_s"] <= 30.0),
              above_49p2=bool(f.min() >= 49.2),
-             within_rocof_limit=bool(abs(m["rocof_hz_s"]) <= 1.0))   # GB Grid Code limit, 1 Hz/s (was 0.5)
+             within_rocof_limit=bool(abs(m["rocof_peak_hz_s"]) <= 1.0))   # GB limit 1 Hz/s; peak is the conservative test
     rob.append(m)
-rob_df = pd.DataFrame(rob)[["loss_mw", "nadir_hz", "rocof_hz_s", "within_rocof_limit",
-                            "recovery_s", "overshoot_mhz", "settle_hz", "meets_30s", "above_49p2"]]
+rob_df = pd.DataFrame(rob)[["loss_mw", "nadir_hz", "rocof_500ms_hz_s", "rocof_peak_hz_s",
+                            "within_rocof_limit", "recovery_s", "overshoot_mhz", "settle_hz",
+                            "meets_30s", "above_49p2"]]
 rob_df.to_csv(os.path.join(RESULTS, "tier1_robustness.csv"), index=False)
 
 fig, ax = plt.subplots(figsize=(9, 5.2))

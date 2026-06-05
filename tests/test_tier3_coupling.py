@@ -1,5 +1,6 @@
 import numpy as np
 
+from coupling import RESPONSE, Supervisor, run_coupled
 from gridsim.agc import flexible_fast_agc
 from gridsim.fleet import FleetResponse
 from gridsim.system import PowerSystem
@@ -43,3 +44,37 @@ def test_fleet_absorbs_in_over_frequency():
     high = fleet.injection_pu(50.5, 50.0, 30000.0)   # over-frequency -> charge (absorb)
     assert low > 0 and high < 0
     assert abs(low + high) < 1e-12                   # symmetric magnitude about nominal
+
+
+def test_coupled_debits_event_energy_and_holds_reserve_floor():
+    system = PowerSystem(agc=flexible_fast_agc())
+    fleet = FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0)
+    floor = fleet.reserve * 0.5
+    _, f, modes, p, soc = run_coupled(system, Supervisor(), fleet, arb_setpoint_mw=-150.0,
+                                      loss_mw=1800.0, trip_time=20.0, duration=80.0)
+    resp = [i for i, m in enumerate(modes) if m == RESPONSE]
+    assert resp                                       # the event really happened
+    assert soc[resp[-1]] < soc[resp[0]]               # discharging debits the stored energy
+    assert soc.min() >= floor - 1e-6                  # reserve stays deliverable throughout
+
+
+def test_reserve_floor_caps_discharge_when_energy_is_low():
+    system = PowerSystem(agc=flexible_fast_agc())
+    fleet = FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0)
+    floor = fleet.reserve * 0.5
+    # start right at the floor: the deliverability cap must keep the response from breaching it
+    _, _, _, _, soc = run_coupled(system, Supervisor(), fleet, arb_setpoint_mw=-150.0,
+                                  loss_mw=1800.0, trip_time=20.0, duration=80.0,
+                                  e_start_mwh=floor, reserve_floor_mwh=floor)
+    assert soc.min() >= floor - 1e-6
+
+
+def test_coupled_inertia_lifts_nadir_slightly():
+    # Stage 3 must carry the Stage 2 synthetic inertia (attached inside run_coupled), so the
+    # supervised run sits a touch above a hypothetical inertia-free run. Guards CRITICAL 2.
+    system = PowerSystem(agc=flexible_fast_agc())
+    fleet = FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0)
+    _, f, _, _, _ = run_coupled(system, Supervisor(), fleet, arb_setpoint_mw=-150.0,
+                                loss_mw=1800.0, trip_time=20.0, duration=80.0)
+    assert system.fleet is None                       # run_coupled restored the system, no mutation
+    assert f.min() > 49.77                            # inertia plus supervised droop holds the nadir

@@ -1,5 +1,7 @@
-from scenarios.gen_trip import recovery_time
-from gridsim.agc import flexible_fast_agc
+import pytest
+
+from scenarios.gen_trip import recovery_time, rocof_peak, rocof_window
+from gridsim.agc import AGC, flexible_fast_agc
 from gridsim.system import PowerSystem
 
 
@@ -60,3 +62,31 @@ def test_agc_robust_across_trip_sizes():
     t, f = PowerSystem(agc=flexible_fast_agc()).simulate(duration=120.0, loss_mw=1800.0)
     assert f.min() >= 49.2
     assert abs(f[-1] - 50.0) < 0.01
+
+
+def test_agc_normalises_arbitrary_participation():
+    agc = AGC(participation={"A": 2.0, "B": 1.0, "C": 1.0})   # sums to 4, not 1
+    assert abs(sum(agc.participation.values()) - 1.0) < 1e-12
+    assert abs(agc.share("A") - 0.5) < 1e-12                  # 2 of 4
+
+
+def test_agc_rejects_invalid_participation():
+    with pytest.raises(ValueError):
+        AGC(participation={"A": 0.0, "B": 0.0})               # sums to zero
+    with pytest.raises(ValueError):
+        AGC(participation={"A": -0.5, "B": 1.5})              # a negative share
+
+
+def test_agc_restores_after_over_frequency():
+    # a generation surplus (negative loss) pushes frequency up; the AGC must bring it back down
+    ps = PowerSystem(agc=flexible_fast_agc())
+    _, f = ps.simulate(duration=180.0, trip_time=5.0, loss_mw=-1320.0)
+    assert f.max() > 50.0                                     # it really went over
+    assert abs(f[-1] - 50.0) < 0.01                           # AGC restores to nominal
+    assert f.min() > 49.95                                    # anti-windup: no big undershoot on the way back
+
+
+def test_rocof_window_and_peak_match_known_values():
+    t, f = PowerSystem(agc=flexible_fast_agc()).simulate(duration=30.0, trip_time=5.0, loss_mw=1320.0)
+    assert abs(rocof_window(t, f, 5.0) - (-0.271)) < 0.01     # grid-code 500 ms average
+    assert abs(rocof_peak(t, f, 5.0) - (-0.318)) < 0.01       # steepest instantaneous

@@ -7,12 +7,12 @@ These are the checks I ran to show the AGC result is not a single-case result. R
 I tuned the controller on the 1320 MW design case and ran it unchanged at other disturbance
 sizes (`results/tier1_robustness.csv`, `plots/tier1_robustness.png`).
 
-| loss (MW) | nadir (Hz) | RoCoF (Hz/s) | within limit | recovery (s) | overshoot (mHz) | settles (Hz) | within 30 s | above 49.2 |
-|---|---|---|---|---|---|---|---|---|
-| 500 | 49.922 | -0.121 | yes | 15.1 | 7.5 | 50.000 | yes | yes |
-| 1000 | 49.853 | -0.241 | yes | 20.7 | 5.2 | 50.000 | yes | yes |
-| 1320 | 49.808 | -0.318 | yes | 21.8 | 3.5 | 50.000 | yes | yes |
-| 1800 | 49.740 | -0.434 | yes | 34.0 | 21.7 | 49.999 | no | yes |
+| loss (MW) | nadir (Hz) | RoCoF 500 ms avg | RoCoF peak | within limit | recovery (s) | overshoot (mHz) | settles (Hz) | within 30 s | above 49.2 |
+|---|---|---|---|---|---|---|---|---|---|
+| 500 | 49.922 | -0.107 | -0.121 | yes | 15.1 | 7.5 | 50.000 | yes | yes |
+| 1000 | 49.853 | -0.207 | -0.241 | yes | 20.7 | 5.2 | 50.000 | yes | yes |
+| 1320 | 49.808 | -0.271 | -0.318 | yes | 21.8 | 3.5 | 50.000 | yes | yes |
+| 1800 | 49.740 | -0.367 | -0.434 | yes | 34.0 | 21.7 | 49.999 | no | yes |
 
 The AGC restores 50.000 Hz and stays above the 49.2 Hz floor for every case, and recovery
 scales sensibly with the disturbance. The design case and smaller losses meet the 30 s
@@ -22,10 +22,13 @@ and overshoot grows: the expected degradation away from the design point. Meetin
 there would need a tighter T_agc or more fast reserve. I state it as a known limitation,
 I do not hide it.
 
-The RoCoF, measured over the first 500 ms after the trip, stays well within limits across all
-of these, from -0.12 Hz/s at 500 MW to -0.43 Hz/s at 1800 MW, inside the 1 Hz/s that ENA EREC
-G99 requires generation to ride through (the earlier figure was 0.5 Hz/s). The robustness CSV
-carries this as a `within_rocof_limit` pass column.
+I report RoCoF two ways, because the description has to match the computation. The 500 ms
+window average is the grid-code style measure and is robust to sample noise: it runs from
+-0.11 Hz/s at 500 MW to -0.37 Hz/s at 1800 MW. The steepest instantaneous slope inside that
+window (the peak) is larger in magnitude, -0.12 to -0.43 Hz/s, and is the conservative figure I
+check against the limit. Both stay inside the 1 Hz/s that ENA EREC G99 requires generation to
+ride through. The `within_rocof_limit` column tests the peak, and `rocof_window` and
+`rocof_peak` in `scenarios/gen_trip.py` compute the two.
 
 ## Gain sweep: why T_agc = 8 s and Kp = 0.10 * beta
 On the 1320 MW design trip (`results/tier1_gain_sweep.csv`).

@@ -15,6 +15,20 @@ def recovery_time(t: np.ndarray, f: np.ndarray, trip_time: float,
     return float("inf") if bad[-1] + 1 >= len(t) else t[bad[-1] + 1] - trip_time
 
 
+def rocof_window(t: np.ndarray, f: np.ndarray, trip_time: float, window: float = 0.5) -> float:
+    # average RoCoF over a fixed window after the trip: grid-code style, robust to sample noise
+    i0 = int(np.searchsorted(t, trip_time))
+    i1 = min(int(np.searchsorted(t, trip_time + window)), len(t) - 1)
+    return float((f[i1] - f[i0]) / (t[i1] - t[i0]))
+
+
+def rocof_peak(t: np.ndarray, f: np.ndarray, trip_time: float, window: float = 0.5) -> float:
+    # steepest instantaneous slope inside the window: conservative, but sensitive to sample noise
+    g = np.gradient(f, t)
+    mask = (t >= trip_time) & (t <= trip_time + window)
+    return float(g[mask].min())
+
+
 def run_gen_trip(loss_mw: float = 1320.0, duration: float = 60.0,
                  trip_time: float = 5.0, t_agc: float = 8.0):
     baseline = PowerSystem(agc=None)

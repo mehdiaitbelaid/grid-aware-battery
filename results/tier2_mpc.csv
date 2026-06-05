@@ -1,7 +1,9 @@
 case,profit_gbp,pct_of_perfect,final_soc_kwh,adj_profit_gbp
 perfect_foresight,16175.5,100.0,1000.0,16175.5
 mpc_perfect_window,16154.8,99.9,1876.2,16202.1
+mpc_weekday_hour,4671.9,28.9,938.1,4668.5
 mpc_same_hour_avg,3926.8,24.3,127.9,3879.7
+mpc_same_hour_of_week,2869.0,17.7,938.1,2865.6
 mpc_persistence,3055.9,18.9,0.0,3001.9
 mpc_noise_sigma_0,16154.8,99.9,1876.2,16202.1
 mpc_noise_sigma_5,14878.9,92.0,1066.0,14882.4

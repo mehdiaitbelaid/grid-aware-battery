@@ -14,6 +14,7 @@ class Supervisor:
     arb_clear_hz: float = 49.95    # all-clear on the way back up
     reserve_hz: float = 49.90      # caution threshold on the way down
     response_hz: float = 49.80     # event threshold on the way down
+    resp_clear_gap_hz: float = 0.05  # re-arm RESPONSE only after a re-dip this far below response_hz
     mode: str = ARBITRAGE          # current state (the machine's memory)
 
     def update(self, f_hz: float) -> str:
@@ -32,7 +33,7 @@ class Supervisor:
             if f_hz >= self.response_hz:
                 m = RECOVERY
         elif m == RECOVERY:
-            if f_hz < self.response_hz:
+            if f_hz < self.response_hz - self.resp_clear_gap_hz:   # genuine second dip, not a wiggle across 49.80
                 m = RESPONSE
             elif f_hz >= self.arb_clear_hz:
                 m = ARBITRAGE

@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from battery import (BatteryParams, load_prices, solve_arbitrage, run_mpc,
-                     perfect_window, persistence, perfect_plus_noise)
+                     perfect_window, persistence, perfect_plus_noise,
+                     same_hour_of_week_average, weekday_hour_average)
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data", "caseB_grid_battery_market_hourly.csv")
@@ -22,8 +23,13 @@ perfect_result = solve_arbitrage(p_da, par, e_start=par.e0_kwh, e_end_min=par.e0
 window_result = run_mpc(p_da, par, forecast_fn=perfect_window)
 persistence_result = run_mpc(p_da, par, forecast_fn=persistence)
 same_hour_result = run_mpc(p_da, par)
-pf, pw, ps, sh = (case["profit_gbp"] for case in (
-    perfect_result, window_result, persistence_result, same_hour_result))
+# two day-of-week forecasts: a sparse weekly bucket, and additive hour-of-day + weekday effects
+dow_bucket_result = run_mpc(p_da, par,
+                            forecast_fn=lambda p, h, H=24: same_hour_of_week_average(p, h, H, lookback_weeks=6))
+dow_add_result = run_mpc(p_da, par, forecast_fn=weekday_hour_average)
+pf, pw, ps, sh, dwb, dwa = (case["profit_gbp"] for case in (
+    perfect_result, window_result, persistence_result, same_hour_result,
+    dow_bucket_result, dow_add_result))
 
 e0 = par.e0_kwh
 mean_price = float(p_da.mean())                       # inventory mark for end-SoC fairness
@@ -45,9 +51,10 @@ for s in sigmas:
 sweep_profit = [r["profit_gbp"] for r in sweep]
 
 # Plot 1: decomposition
-labels = ["perfect\nforesight", "MPC\nperfect window", "MPC\nsame-hour avg", "MPC\npersistence"]
-vals = [pf, pw, sh, ps]
-colors = ["tab:green", "tab:olive", "tab:blue", "tab:gray"]
+labels = ["perfect\nforesight", "MPC\nperfect window", "MPC\nweekday+hour",
+          "MPC\nsame-hour avg", "MPC\npersistence"]
+vals = [pf, pw, dwa, sh, ps]
+colors = ["tab:green", "tab:olive", "tab:cyan", "tab:blue", "tab:gray"]
 fig, ax = plt.subplots(figsize=(8, 5))
 bars = ax.bar(labels, vals, color=colors, alpha=0.85)
 for b, v in zip(bars, vals):
@@ -84,7 +91,8 @@ plt.close(fig)
 
 # Results CSV
 named = [("perfect_foresight", perfect_result), ("mpc_perfect_window", window_result),
-         ("mpc_same_hour_avg", same_hour_result), ("mpc_persistence", persistence_result)]
+         ("mpc_weekday_hour", dow_add_result), ("mpc_same_hour_avg", same_hour_result),
+         ("mpc_same_hour_of_week", dow_bucket_result), ("mpc_persistence", persistence_result)]
 named += [(f"mpc_noise_sigma_{s}", r) for s, r in zip(sigmas, sweep)]
 rows = [{"case": name,
          "profit_gbp": round(r["profit_gbp"], 1),

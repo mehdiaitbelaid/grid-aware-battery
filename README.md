@@ -57,7 +57,7 @@ default 60 s artifact ends at 49.99999 Hz. See
 
 Tier 2 is complete. A 24-hour rolling MPC with perfect within-window prices nearly matches
 the full perfect foresight LP, within about 0.1%, which checks the rolling-horizon
-implementation on this dataset. With simple realistic forecasts profit falls to 19 to 24% of perfect
+implementation on this dataset. With simple realistic forecasts profit falls to 19 to 29% of perfect
 foresight, which quantifies the value destroyed by price uncertainty. A terminal-value
 ablation confirms the end-of-window guardrail is near-neutral on this dataset, within 0.5%
 across the 24, 12, and 6 hour windows, so I keep it as a standard safeguard rather than a
@@ -87,10 +87,11 @@ surplus (`plots/tier3_overfreq.png`), a ramp-rate sweep shows response speed is 
 beyond reserved power (`plots/tier3_speed.png`), and sweeping reserve and speed together maps
 the nadir surface, where you need both (`plots/tier3_surface.png`).
 
-I also priced whether it pays: a net-value run compares the DC revenue on the reserved
-capacity against the arbitrage it costs (`plots/tier3_value.png`), giving a break-even of about
-GBP 7.5/MW/h against perfect foresight and a low opportunity cost under the simple forecast. The
-500 kW stands for part of an aggregated fleet, since DC offers are at least 1 MW.
+I also priced whether it pays, using the DC availability price in the dataset
+(`ancillary_availability_gbp_per_mw_per_h`, mean GBP 8.06/MW/h). The break-even is GBP 7.46/MW/h,
+so the reserve clears GBP +431 over 60 days against perfect foresight and GBP +5,929 against the
+realistic forecast (`plots/tier3_value.png`). On this data it pays. The 500 kW stands for part of
+an aggregated fleet, since DC offers are at least 1 MW.
 
 A degradation sensitivity prices battery wear as a throughput cost and sweeps it: at a central
 GBP 10 per MWh the break even falls from GBP 7.46 to GBP 6.65/MW/h, because arbitrage cycles
@@ -114,7 +115,8 @@ python make_tier3_sensitivity.py  # the same frontier under a realistic forecast
 python make_tier3_value.py        # DC break-even, the punchline (uses the sensitivity csv above)
 python make_tier3_degradation.py  # how battery wear shifts the reserve break even
 python make_tier3_stage2_sweep.py # what the reserve buys inside the frequency model
-python make_tier3_stage3.py       # the supervisor event timeline
+python make_tier3_stage3.py       # the supervisor event timeline, with SoC tracking
+python make_tier3_supervisor_sweep.py  # supervisor threshold sweep, a second design axis
 python make_tier3_overfreq.py     # symmetric over-frequency containment
 python make_tier3_speed.py        # response speed as a second axis
 python make_tier3_surface.py      # nadir over reserve by speed

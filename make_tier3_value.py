@@ -1,5 +1,6 @@
-# Net value: DC availability revenue on the reserved 500 kW against the arbitrage it costs.
-# 500 kW is below the 1 MW minimum DC offer, so treat it as part of an aggregated fleet.
+# Net value of holding 500 kW as DC reserve. Revenue uses the availability price that ships in
+# the dataset (ancillary_availability_gbp_per_mw_per_h), not a hand-picked sweep. 500 kW is below
+# the 1 MW DC minimum, so read it as a share of an aggregated fleet.
 import os
 
 import numpy as np
@@ -20,57 +21,67 @@ os.makedirs(PLOTS, exist_ok=True)
 RESERVE_KW = 500.0
 RESERVE_MW = RESERVE_KW / 1000.0
 DUR_H = 0.5
-HOURS = 1440                       # 60 days of the price series
+HOURS = 1440                                   # 60 days of the price series
 
-_, p_da = load_prices(DATA)
+df, p_da = load_prices(DATA)
+avail = df["ancillary_availability_gbp_per_mw_per_h"].to_numpy()[:HOURS]
 par = BatteryParams()
 
-# perfect-foresight arbitrage cost of holding 500 kW back
+# arbitrage forgone by reserving 500 kW, perfect foresight
 base = solve_arbitrage(p_da, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh)["profit_gbp"]
 res = solve_arbitrage(p_da, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh,
                       reserve_power_kw=RESERVE_KW,
                       reserve_energy_kwh=RESERVE_KW * DUR_H / par.eta_dis)["profit_gbp"]
 cost_perfect = base - res
 
-# realistic-forecast cost, interpolated to 50% from the committed sensitivity sweep
+# realistic-forecast cost, interpolated to 50% from the sensitivity sweep
 sens = pd.read_csv(os.path.join(RESULTS, "tier3_pareto_sensitivity.csv"))
 r0 = float(sens.loc[sens.reserve_pct == 0, "realistic_gbp"].iloc[0])
 r50 = float(np.interp(50, sens.reserve_pct, sens.realistic_gbp))
-cost_realistic = r0 - r50          # near zero: the reserve is nearly free under a weak forecast
+cost_realistic = r0 - r50
 
-# DC availability revenue and net value across clearing prices
-prices = np.linspace(0.0, 20.0, 81)
-revenue = RESERVE_MW * prices * HOURS
-net_perfect = revenue - cost_perfect
-net_realistic = revenue - cost_realistic
+# DC availability revenue from the actual hourly series, and the break-even price
+dc_revenue = RESERVE_MW * float(avail.sum())   # GBP over 60 days, paid per MW per hour held
+mean_price = float(avail.mean())
 breakeven = cost_perfect / (RESERVE_MW * HOURS)
+net_perfect = dc_revenue - cost_perfect
+net_realistic = dc_revenue - cost_realistic
 
-pd.DataFrame({"dc_price_gbp_per_mw_h": prices,
-              "dc_revenue_gbp": np.round(revenue, 0),
-              "net_vs_perfect_gbp": np.round(net_perfect, 0),
-              "net_vs_realistic_gbp": np.round(net_realistic, 0)}).to_csv(
+pd.DataFrame([{"dc_mean_price_gbp_per_mw_h": round(mean_price, 2),
+               "dc_revenue_gbp": round(dc_revenue, 0),
+               "arbitrage_cost_perfect_gbp": round(cost_perfect, 0),
+               "arbitrage_cost_realistic_gbp": round(cost_realistic, 0),
+               "breakeven_perfect_gbp_per_mw_h": round(breakeven, 2),
+               "net_vs_perfect_gbp": round(net_perfect, 0),
+               "net_vs_realistic_gbp": round(net_realistic, 0)}]).to_csv(
     os.path.join(RESULTS, "tier3_value.csv"), index=False)
 
-fig, ax = plt.subplots(figsize=(8.6, 5.0))
-ax.axhline(0.0, color="black", lw=0.8)
-ax.axvline(breakeven, ls=":", color="purple", lw=1.1, alpha=0.7,
-           label=f"break-even {breakeven:.1f} GBP/MW/h (perfect foresight)")
-ax.plot(prices, net_perfect, lw=1.9, color="#1f6feb", label="net value vs perfect foresight cost")
-ax.plot(prices, net_realistic, lw=1.9, color="#2ca02c",
-        label="net value vs simple-forecast cost (near zero opportunity cost)")
-ax.set_xlabel("DC availability price (GBP/MW/h)")
-ax.set_ylabel("Net value over 60 days (GBP)")
-ax.set_title("Tier 3 net value: DC revenue on 500 kW reserved minus arbitrage forgone\n"
-             "price-dependent vs perfect foresight; low opportunity cost under the simple forecast")
-ax.legend(loc="upper left", fontsize=8.5)
-ax.grid(alpha=0.3)
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+ax1.plot(avail, lw=0.6, color="#999999", alpha=0.8, label="hourly price")
+ax1.axhline(mean_price, color="#2ca02c", lw=1.7, label=f"data mean {mean_price:.2f}")
+ax1.axhline(breakeven, ls=":", color="purple", lw=1.5, label=f"break-even {breakeven:.2f} (perfect foresight)")
+ax1.set_xlabel("hour")
+ax1.set_ylabel("DC availability price (GBP/MW/h)")
+ax1.set_title("DC availability price and break-even")
+ax1.legend(loc="upper right", fontsize=8.5)
+ax1.grid(alpha=0.3)
+
+labels = ["vs perfect\nforesight cost", "vs realistic\nforecast cost"]
+vals = [net_perfect, net_realistic]
+bars = ax2.bar(labels, vals, color=["#1f6feb", "#2ca02c"], alpha=0.85)
+ax2.axhline(0.0, color="black", lw=0.8)
+for b, v in zip(bars, vals):
+    ax2.text(b.get_x() + b.get_width() / 2, v + (60 if v >= 0 else -160),
+             f"GBP {v:+,.0f}", ha="center", fontsize=9)
+ax2.set_ylabel("Net value over 60 days (GBP)")
+ax2.set_title("Net value of 500 kW reserve at the data DC price")
+ax2.grid(axis="y", alpha=0.3)
 fig.tight_layout()
 fig.savefig(os.path.join(PLOTS, "tier3_value.png"), dpi=150)
 plt.close(fig)
 
-print(f"arbitrage forgone reserving 500 kW, perfect foresight: GBP {cost_perfect:,.0f}")
-print(f"arbitrage forgone, simple forecast:                    GBP {cost_realistic:,.0f} (near zero opportunity cost)")
-print(f"break-even DC price vs perfect foresight:              {breakeven:.2f} GBP/MW/h")
-for P in (5, 10, 15):
-    print(f"  DC {P:2d} GBP/MW/h -> revenue GBP {RESERVE_MW * P * HOURS:6,.0f}, "
-          f"net vs perfect GBP {RESERVE_MW * P * HOURS - cost_perfect:+7,.0f}")
+print(f"DC availability price (data): mean {mean_price:.2f} GBP/MW/h, range {avail.min():.2f} to {avail.max():.2f}")
+print(f"reserve revenue, 0.5 MW:      GBP {dc_revenue:,.0f}")
+print(f"arbitrage forgone:            GBP {cost_perfect:,.0f} perfect foresight, GBP {cost_realistic:,.0f} realistic")
+print(f"break-even DC price:          {breakeven:.2f} GBP/MW/h (perfect foresight)")
+print(f"net value:                    GBP {net_perfect:+,.0f} vs perfect, GBP {net_realistic:+,.0f} vs realistic")

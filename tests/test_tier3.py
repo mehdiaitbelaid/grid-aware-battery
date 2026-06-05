@@ -38,3 +38,12 @@ def test_reserve_reduces_profit():
                           reserve_power_kw=500.0,
                           reserve_energy_kwh=500.0 * DUR_H / par.eta_dis)["profit_gbp"]
     assert res < base
+
+
+def test_charge_and_discharge_never_co_activate():
+    # net dispatch equals the active converter mode: the LP never charges and discharges at once,
+    # so the reserve constraint on net (pdis - pch) is well posed. Round-trip losses make
+    # co-activation strictly worse, so the optimum keeps one of the two at zero each hour.
+    par, p = BatteryParams(), _prices()
+    out = solve_arbitrage(p, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh)
+    assert float((out["charge_kw"] * out["discharge_kw"]).max()) < 1e-3

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from gridsim.agc import flexible_fast_agc
 from gridsim.fleet import FleetResponse
 from gridsim.system import PowerSystem
-from scenarios.gen_trip import recovery_time
+from scenarios.gen_trip import recovery_time, rocof_peak, rocof_window
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(ROOT, "results")
@@ -23,10 +23,10 @@ DURATION = 60.0
 
 
 def metrics(t, f):
-    rocof = float(np.gradient(f, t)[(t >= TRIP) & (t <= TRIP + 0.5)].min())
     rec = recovery_time(t, f, trip_time=TRIP)
     return {"nadir_hz": round(float(f.min()), 3),
-            "rocof_hz_s": round(rocof, 3),
+            "rocof_500ms_hz_s": round(rocof_window(t, f, TRIP), 3),
+            "rocof_peak_hz_s": round(rocof_peak(t, f, TRIP), 3),
             "recovery_s": round(rec, 1) if np.isfinite(rec) else None,
             "settle_hz": round(float(f[-1]), 4)}
 
@@ -42,7 +42,7 @@ _, f_fleet = with_fleet.simulate(duration=DURATION, trip_time=TRIP, loss_mw=LOSS
 mb, mf = metrics(t, f_base), metrics(t, f_fleet)
 rows = [{"case": "AGC only (no battery)", **mb},
         {"case": f"AGC + {int(fleet.p_fleet_mw)} MW fleet", **mf}]
-df = pd.DataFrame(rows)[["case", "nadir_hz", "rocof_hz_s", "recovery_s", "settle_hz"]]
+df = pd.DataFrame(rows)[["case", "nadir_hz", "rocof_500ms_hz_s", "rocof_peak_hz_s", "recovery_s", "settle_hz"]]
 df.to_csv(os.path.join(RESULTS, "tier3_stage2.csv"), index=False)
 
 fig, ax = plt.subplots(figsize=(9, 5.2))
@@ -56,7 +56,7 @@ ax.set_xlabel("Time since trip (s)")
 ax.set_ylabel("Frequency (Hz)")
 ax.set_title(f"Tier 3 Stage 2: {int(fleet.p_fleet_mw)} MW fleet on a {int(LOSS)} MW trip\n"
              f"nadir {mb['nadir_hz']} to {mf['nadir_hz']} Hz, "
-             f"RoCoF {mb['rocof_hz_s']} to {mf['rocof_hz_s']} Hz/s")
+             f"RoCoF 500 ms avg {mb['rocof_500ms_hz_s']} to {mf['rocof_500ms_hz_s']} Hz/s")
 ax.legend(loc="lower right", fontsize=8.5)
 ax.grid(alpha=0.3)
 fig.tight_layout()
@@ -66,5 +66,5 @@ plt.close(fig)
 print(df.to_string(index=False))
 print(f"\nnadir: {mb['nadir_hz']} to {mf['nadir_hz']} Hz "
       f"({(mf['nadir_hz'] - mb['nadir_hz']) * 1000:+.0f} mHz)")
-print(f"RoCoF: {mb['rocof_hz_s']} to {mf['rocof_hz_s']} Hz/s "
-      f"({(mf['rocof_hz_s'] - mb['rocof_hz_s']):+.3f} Hz/s, less steep is better)")
+print(f"RoCoF 500 ms avg: {mb['rocof_500ms_hz_s']} to {mf['rocof_500ms_hz_s']} Hz/s "
+      f"({(mf['rocof_500ms_hz_s'] - mb['rocof_500ms_hz_s']):+.3f} Hz/s, less steep is better)")

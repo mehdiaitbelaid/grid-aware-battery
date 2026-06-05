@@ -101,16 +101,17 @@ The fleet responds two ways (`gridsim/fleet.py`), both entering the swing equati
   here is a first-order approximation, not an inverter-control model.
 
 ### Fleet-size sweep (1320 MW trip)
-| fleet | nadir | RoCoF | recovery |
-|---:|---:|---:|---:|
-| 0 | 49.808 Hz | -0.318 Hz/s | 21.8 s |
-| 500 MW | 49.828 Hz | -0.309 Hz/s | 24.3 s |
-| 1000 MW | 49.844 Hz | -0.301 Hz/s | 26.2 s |
-| 2000 MW | 49.868 Hz | -0.285 Hz/s | 29.1 s |
+| fleet | nadir | RoCoF 500 ms avg | RoCoF peak | recovery |
+|---:|---:|---:|---:|---:|
+| 0 | 49.808 Hz | -0.271 Hz/s | -0.318 Hz/s | 21.8 s |
+| 500 MW | 49.828 Hz | -0.253 Hz/s | -0.309 Hz/s | 24.3 s |
+| 1000 MW | 49.844 Hz | -0.236 Hz/s | -0.301 Hz/s | 26.2 s |
+| 2000 MW | 49.868 Hz | -0.209 Hz/s | -0.285 Hz/s | 29.1 s |
 
-Nadir rises strongly with fleet size, about +30 mHz per GW. RoCoF improves only weakly, about
-10% even at 2 GW, because synthetic inertia from even a large fleet adds little stored energy
-to a 30 GW system. A battery is a strong lever on the dip and a weak one on the slope.
+Nadir rises strongly with fleet size, about +30 mHz per GW. RoCoF improves more modestly: the
+peak slope eases about 10% and the 500 ms average about 23% at 2 GW, because synthetic inertia
+from even a large fleet adds little stored energy to a 30 GW system. A battery is a strong lever
+on the dip and a weaker one on the slope.
 
 ### Severe 1800 MW trip
 This is the case Tier 1 held above the floor but missed the 30 s target on.
@@ -176,13 +177,22 @@ One severe 1800 MW trip while the battery is charging at 150 MW for arbitrage
 |---|---|---|
 | +0.00 s | ARBITRAGE | charging 150 MW |
 | +0.25 s | RESERVE | cancels charging, holds ready |
-| +0.62 s | RESPONSE | discharges up to 207 MW to support the grid |
-| +1.47 s | RECOVERY | tapers the response as frequency climbs |
-| +14.77 s | ARBITRAGE | resumes charging |
+| +0.64 s | RESPONSE | discharges up to 205 MW to support the grid |
+| +1.48 s | RECOVERY | tapers the response as frequency climbs |
+| +14.78 s | ARBITRAGE | resumes charging |
 
-The supervised battery lifts the nadir to 49.778 Hz, against 49.740 Hz with no battery, and
+The supervised battery lifts the nadir to 49.780 Hz, against 49.740 Hz with no battery, and
 hands control back without chatter. My first version chattered because one boundary lacked hysteresis.
 The per-state machine fixes it and a test guards against regression.
+
+The coupled run is state-coupled both ways. It carries the Stage 2 synthetic inertia (attached as a
+passive inertia-only fleet so the supervisor still owns the droop, with no double counting) and it
+tracks the fleet state of charge, debiting the energy the response delivers and capping discharge at
+a reserve floor so the held energy cannot be spent below what sustains the reserve for 30 minutes. On
+this event the response delivers about 0.2 MWh, only 0.08% of the 250 MWh floor, so deliverability is
+never at risk: the state-of-charge panel in `plots/tier3_stage3_timeline.png` sits flat above the
+floor. The inertia is a small lever here, worth about 2 mHz of nadir, consistent with the Stage 2
+finding that a battery helps the dip far more than the slope.
 
 ### Stage 3 scope
 - I show a single under-frequency event through the supervisor. The over-frequency case is
@@ -190,24 +200,32 @@ The per-state machine fixes it and a test guards against regression.
   low-frequency side, and a mirror high-frequency mode would complete it.
 - I treat the arbitrage setpoint as scheduled demand, so only the battery's deviation from
   it moves frequency, and the scheduled charging does not disturb frequency before the trip.
-- The response deployed is the Stage 2 droop. I characterise synthetic inertia in Stage 2.
+- The coupled run deploys the supervised droop and the Stage 2 synthetic inertia together, and
+  tracks the fleet energy against a reserve floor (see above). The arbitrage setpoint is still a
+  constant stand-in for the hourly MPC dispatch, so wiring the live MPC schedule into the coupled
+  loop is the remaining step toward a full hybrid simulation.
+- Sweeping the supervisor's own response threshold (`make_tier3_supervisor_sweep.py`,
+  `plots/tier3_supervisor_sweep.png`) is a second design axis beyond reserve size: a threshold
+  below the natural dip never deploys the reserve, while above it a higher threshold deploys
+  sooner for a slightly better nadir, and no setting chatters (at most 4 transitions).
 - The supervisor is event-gated, responding below 49.8 Hz rather than to every wiggle, which
   is why frequency response sits so lightly on arbitrage: the Stage 1 sensitivity made physical.
 
 ## Is it worth it? Net value
-Stage 1 priced the cost of being available; this prices the revenue. Reserving 500 kW costs
-GBP 5,369 of perfect-foresight arbitrage over the 60 days, while that same 500 kW held in
-NESO's Dynamic Containment earns the DC availability price times the 1440 hours, so the
-break-even DC price is about GBP 7.5/MW/h (`make_tier3_value.py`, `plots/tier3_value.png`). DC
-has cleared roughly GBP 5 to GBP 15/MW/h in its busy years and lower since the market
-saturated, so against perfect foresight this is a price-dependent call. Under the simple
-realistic forecast the modelled opportunity cost of the reserve is near zero (about -GBP 130,
-the reserve barely changes realistic profit), so in this comparison the DC revenue dominates
-the modelled opportunity cost. Caveats: 500 kW is below the 1 MW minimum DC offer, so it stands
-for part of an aggregated fleet or an illustrative scaling, not a standalone bid; and DC is
+Stage 1 priced the cost of being available; this prices the revenue, using the DC availability
+price that ships in the dataset (`ancillary_availability_gbp_per_mw_per_h`) instead of a hand
+cited number. Reserving 500 kW costs GBP 5,369 of perfect-foresight arbitrage over the 60 days,
+so the break-even DC price is GBP 7.46/MW/h. The dataset's availability price averages GBP
+8.06/MW/h (range 1.00 to 16.17), above the break-even, so holding the 500 kW as DC reserve clears
+GBP +431 over the 60 days against the perfect-foresight cost, and GBP +5,929 against the
+realistic-forecast cost of GBP -130 (`make_tier3_value.py`, `plots/tier3_value.png`,
+`results/tier3_value.csv`). On this data it pays, not "it depends". Caveats: 500 kW is below the
+1 MW minimum DC offer, so read it as a share of an aggregated fleet, not a standalone bid; DC is
 auction cleared in 4-hour EFA blocks with eligibility, bidding, clearing, metering,
-state-of-charge, and performance rules, so this is an upper bound on the modelled opportunity
-cost, not realisable income.
+state-of-charge, and performance rules, so this is an upper bound, not realisable income; and the
+revenue assumes the reserve clears at the availability price every hour. The dataset also carries
+an `imbalance_price_gbp_per_mwh` series, which a fuller model would use to value the energy
+deviation during an event; I did not stack it.
 
 ## Degradation sensitivity
 The net value above ignores battery wear. Cycling a battery consumes cycle life, so a real

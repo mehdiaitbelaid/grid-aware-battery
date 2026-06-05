@@ -2,8 +2,9 @@ import os
 
 import numpy as np
 
-from battery import (BatteryParams, load_prices, perfect_window, persistence,
-                     run_mpc, same_hour_average, solve_arbitrage)
+from battery import (BatteryParams, load_prices, perfect_window, persistence, run_mpc,
+                     same_hour_average, same_hour_of_week_average, weekday_hour_average,
+                     solve_arbitrage)
 
 DATA = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                     "data", "caseB_grid_battery_market_hourly.csv")
@@ -30,8 +31,8 @@ def test_window_solve_respects_start_soc():
 
 def test_realistic_forecasts_have_no_future_leakage():
     _, p = load_prices(DATA)
-    for forecast in (same_hour_average, persistence):
-        for h in (0, 1, 30, 200, 1000):
+    for forecast in (same_hour_average, same_hour_of_week_average, weekday_hour_average, persistence):
+        for h in (0, 1, 30, 200, 1000, len(p) - 24, len(p) - 2, len(p) - 1):
             f_clean = forecast(p, h)
             p_corrupt = p.copy()
             p_corrupt[h:] = -1.0e6                 # destroy the present and future
@@ -60,3 +61,15 @@ def test_degradation_cost_reduces_throughput_and_is_neutral_at_zero():
                              degradation_cost_per_mwh=10.0)
     assert priced["profit_gbp"] <= base["profit_gbp"] + 1e-6          # wear cannot raise net profit
     assert priced["discharge_kw"].sum() <= base["discharge_kw"].sum() + 1e-6   # nor increase cycling
+
+
+def test_round_trip_efficiency_applied_once():
+    # charge cheap (hour 0), discharge dear (hour 1), return to start SoC. What comes back out is
+    # the round-trip efficiency times what went in, and the cash is grid-side, eta counted once.
+    par = BatteryParams()
+    prices = np.array([10.0, 100.0])
+    out = solve_arbitrage(prices, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh)
+    c, d = out["charge_kw"], out["discharge_kw"]
+    assert abs(d[1] - par.eta_ch * par.eta_dis * c[0]) < 1e-3
+    expected = (prices[1] * d[1] - prices[0] * c[0]) * par.dt_h / 1000.0
+    assert abs(out["profit_gbp"] - expected) < 1e-3

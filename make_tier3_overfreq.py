@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from gridsim.agc import flexible_fast_agc
 from gridsim.fleet import FleetResponse
 from gridsim.system import PowerSystem
+from scenarios.gen_trip import rocof_window
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(ROOT, "results")
@@ -21,8 +22,9 @@ TRIP, DURATION, SURPLUS = 5.0, 120.0, -1320.0   # negative loss = generation sur
 
 def zenith_and_rocof(t, f):
     zenith = float(f.max())
-    rocof = float(np.gradient(f, t)[(t >= TRIP) & (t <= TRIP + 0.5)].max())
-    return zenith, rocof
+    rocof_win = rocof_window(t, f, TRIP)          # sign-correct 500 ms average (positive on a rise)
+    rocof_pk = float(np.gradient(f, t)[(t >= TRIP) & (t <= TRIP + 0.5)].max())   # steepest rise
+    return zenith, rocof_win, rocof_pk
 
 
 base = PowerSystem(agc=flexible_fast_agc())
@@ -30,11 +32,13 @@ with_fleet = PowerSystem(agc=flexible_fast_agc(), fleet=FleetResponse(p_fleet_mw
 t, f_base = base.simulate(duration=DURATION, trip_time=TRIP, loss_mw=SURPLUS)
 _, f_fleet = with_fleet.simulate(duration=DURATION, trip_time=TRIP, loss_mw=SURPLUS)
 
-zb, rb = zenith_and_rocof(t, f_base)
-zf, rf = zenith_and_rocof(t, f_fleet)
-rows = [{"case": "AGC only (no battery)", "zenith_hz": round(zb, 3), "rocof_hz_s": round(rb, 3),
+zb, rb_win, rb_pk = zenith_and_rocof(t, f_base)
+zf, rf_win, rf_pk = zenith_and_rocof(t, f_fleet)
+rows = [{"case": "AGC only (no battery)", "zenith_hz": round(zb, 3),
+         "rocof_500ms_hz_s": round(rb_win, 3), "rocof_peak_hz_s": round(rb_pk, 3),
          "settle_hz": round(float(f_base[-1]), 4)},
-        {"case": "AGC + 500 MW fleet", "zenith_hz": round(zf, 3), "rocof_hz_s": round(rf, 3),
+        {"case": "AGC + 500 MW fleet", "zenith_hz": round(zf, 3),
+         "rocof_500ms_hz_s": round(rf_win, 3), "rocof_peak_hz_s": round(rf_pk, 3),
          "settle_hz": round(float(f_fleet[-1]), 4)}]
 pd.DataFrame(rows).to_csv(os.path.join(RESULTS, "tier3_overfreq.csv"), index=False)
 

@@ -55,9 +55,16 @@ inventory guardrail.
 
 ## Result
 - Perfect foresight: GBP 16,176 over 60 days.
-- MPC with simple realistic forecasts: GBP 3,056 (persistence) to GBP 3,927 (same-hour
-  average), about 19 to 24% of perfect foresight. Price uncertainty destroys roughly
-  three quarters of the achievable arbitrage value on this dataset.
+- MPC with simple realistic forecasts: GBP 3,056 (persistence) to GBP 4,672 (weekday+hour
+  fixed effects), about 19 to 29% of perfect foresight. Price uncertainty still destroys most
+  of the achievable arbitrage value on this dataset.
+- Day-of-week structure helps, but only as fixed effects, not buckets. The naive version,
+  averaging the same hour-of-week over prior weeks (`same_hour_of_week_average`), gives GBP
+  2,869, 17.7% of perfect, below the same-hour mean, because 168 weekly buckets leave few
+  samples each. Fitting additive hour-of-day and day-of-week effects instead
+  (`weekday_hour_average`, every past sample feeds each effect) lifts it to GBP 4,672, 28.9%,
+  the best realistic forecast here and above the 24.3% same-hour mean. The lesson is sample
+  efficiency: the weekly structure is real, but you cannot spend the data on sparse buckets.
 - Bonus, the value of forecast quality: a synthetic forecast (true prices plus zero-mean
   Gaussian noise that grows with lead time) gives a smooth profit-versus-error curve,
   100% at zero noise falling to about 20% at sigma = 80 GBP/MWh. The simple forecasts sit
@@ -68,14 +75,14 @@ inventory guardrail.
   empty (128 kWh) and persistence ends empty (0 kWh), so their cash slightly overstates them,
   because they sold stored energy they never replaced. When I credit the end-of-horizon inventory
   at the mean price, the adjusted profits are GBP 3,880 (same-hour) and GBP 3,002
-  (persistence), about GBP 50 below cash, so the 19 to 24% comparison changes little. The perfect-window
+  (persistence), about GBP 50 below cash, so the realistic comparison changes little. The perfect-window
   MPC ends fuller (1876 kWh), so its cash is if anything understated. `results/tier2_mpc.csv`
   now carries `final_soc_kwh` and `adj_profit_gbp` for every run.
 
 ## Headline
 A 24-hour rolling MPC with perfect within-window prices nearly matches the full
 perfect foresight LP, so the rolling implementation passes this dataset check. With simple realistic
-forecasts, profit falls to 19 to 24% of perfect foresight, which quantifies the value
+forecasts, profit falls to 19 to 29% of perfect foresight, which quantifies the value
 destroyed by price uncertainty.
 
 ## Scope and limitations
