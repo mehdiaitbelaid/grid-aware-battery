@@ -24,7 +24,7 @@ def run_coupled(system: PowerSystem, supervisor: Supervisor, fleet: FleetRespons
         resp_mw = fleet.injection_pu(f_hz, system.f_nom, system.s_base_mw) * system.s_base_mw
 
         if mode == ARBITRAGE:
-            p = arb_setpoint_mw    # TODO: constant stand-in for the hourly MPC dispatch
+            p = arb_setpoint_mw    # constant stand-in for the hourly MPC dispatch
         elif mode == RESERVE:
             p = max(0.0, arb_setpoint_mw)              # cancel charging and hold ready
         elif mode == RESPONSE:

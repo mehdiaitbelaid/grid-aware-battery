@@ -51,7 +51,7 @@ ax2.plot(df["reserve_kw"], df["perfect_pct"], "o-", lw=1.9, color="#1f6feb", lab
 ax2.plot(df["reserve_kw"], df["realistic_pct"], "s-", lw=1.9, color="#d29922", label="realistic forecast (MPC)")
 ax2.set_xlabel("Reserved response power (kW)")
 ax2.set_ylabel("Profit kept (% of own 0% reserve)")
-ax2.set_title("Normalised: costly with perfect foresight, little cost with this forecast")
+ax2.set_title("Normalised profit kept by reserve level")
 ax2.legend()
 ax2.grid(alpha=0.3)
 fig.suptitle("Tier 3 reserve frontier: theoretical (perfect foresight) vs operational (real forecast)")

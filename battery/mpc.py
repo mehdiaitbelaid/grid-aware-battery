@@ -43,6 +43,6 @@ def run_mpc(p_da, params: BatteryParams = BatteryParams(), horizon: int = 24,
         e = min(max(e, 0.0), par.e_cap_kwh)
         soc[h + 1] = e
 
-    # TODO: books day-ahead arbitrage only; reserve and imbalance revenue are not stacked yet
+    # Scope: books day-ahead arbitrage only; reserve and imbalance revenue are not stacked yet
     profit = float(np.sum(p_da * (discharge - charge) * dt / 1000.0))
     return {"charge_kw": charge, "discharge_kw": discharge, "soc_kwh": soc, "profit_gbp": profit}
