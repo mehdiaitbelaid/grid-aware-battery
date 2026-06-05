@@ -25,11 +25,12 @@ is not in the data. The forecast-error sweep in Tier 2 shows how much the result
 price quality, which is the honest way to flag this. See `docs/tier2.md`.
 
 ## First-order fleet response, not a full inverter model
-The battery fleet supports frequency two ways: synthetic droop (inject power proportional to
-the frequency drop, capped at the reserve) and synthetic inertia (an added effective inertia
-term that slows the initial RoCoF). Both enter the swing equation as clean terms. Those two
-terms capture what a battery actually does to system frequency: lift the nadir and slow the
-fall. A full power-electronics model would add converter dynamics and a df/dt filter that
+The battery fleet supports frequency two ways: synthetic droop (a symmetric response that
+discharges proportional to a frequency drop and charges proportional to an over-frequency
+rise, both capped at the reserve) and synthetic inertia (an added effective inertia term that
+slows the initial RoCoF). Both enter the swing equation as clean terms. Those two terms
+capture what a battery actually does to system frequency: lift the nadir on a generation
+loss, contain the surplus on an over-frequency, and slow the initial rate of change. A full power-electronics model would add converter dynamics and a df/dt filter that
 shift the numbers slightly but not the story. I label it a first-order approximation and note
 that a real inverter must filter a noisy df/dt measurement. See `docs/tier3.md`.
 
