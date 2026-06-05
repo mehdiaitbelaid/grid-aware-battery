@@ -29,6 +29,7 @@ through a reserve, a physical fleet response, and a supervisor.
 | `plots/` | before and after figures |
 | `tests/` | unit tests |
 | `docs/` | design notes |
+| `DECISIONS.md` | the headline modelling trade-offs, in one place |
 
 ## Frequency model provenance
 
@@ -57,9 +58,11 @@ default 60 s artifact ends at 49.99999 Hz. See
 Tier 2 is complete. A 24-hour rolling MPC with perfect within-window prices nearly matches
 the full perfect foresight LP, within about 0.1%, which checks the rolling-horizon
 implementation on this dataset. With simple realistic forecasts profit falls to 19 to 24% of perfect
-foresight, which quantifies the value destroyed by price uncertainty. See
-`plots/tier2_decomposition.png`, `plots/tier2_forecast_value.png`, `results/tier2_mpc.csv`,
-and `docs/tier2.md`.
+foresight, which quantifies the value destroyed by price uncertainty. A terminal-value
+ablation confirms the end-of-window guardrail is near-neutral on this dataset, within 0.5%
+across the 24, 12, and 6 hour windows, so I keep it as a standard safeguard rather than a
+profit driver. See `plots/tier2_decomposition.png`, `plots/tier2_forecast_value.png`,
+`results/tier2_mpc.csv`, `results/tier2_terminal_ablation.csv`, and `docs/tier2.md`.
 
 In Tier 3 Stage 1 I ran a reserve study. Sweeping reserved upward response from 0 to 1000 kW
 traces the profit against availability frontier, where reserving 500 kW for 30 minutes
@@ -85,23 +88,30 @@ beyond reserved power (`plots/tier3_speed.png`), and sweeping reserve and speed 
 the nadir surface, where you need both (`plots/tier3_surface.png`).
 
 I also priced whether it pays: a net-value run compares the DC revenue on the reserved
-capacity against the arbitrage it costs (`plots/tier3_value.png`), giving a break-even of
-about GBP 7.5/MW/h against perfect foresight and near pure profit for a real operator.
+capacity against the arbitrage it costs (`plots/tier3_value.png`), giving a break-even of about
+GBP 7.5/MW/h against perfect foresight and a low opportunity cost under the simple forecast. The
+500 kW stands for part of an aggregated fleet, since DC offers are at least 1 MW.
 
 Regenerate the results:
 
-```
-python make_tier1_figures.py
-python make_tier1_validation.py
-python make_tier2_figures.py
-python make_tier3_pareto.py
-python make_tier3_sensitivity.py
-python make_tier3_stage2_sweep.py
-python make_tier3_stage3.py
-python make_tier3_overfreq.py
-python make_tier3_speed.py
-python make_tier3_surface.py
-python make_tier3_value.py
+```bash
+# Tier 1
+python make_tier1_figures.py      # before and after recovery plot
+python make_tier1_validation.py   # robustness sweep across trip sizes
+
+# Tier 2
+python make_tier2_figures.py      # MPC against perfect foresight, plus the forecast-error value
+python make_tier2_ablation.py     # terminal-value ablation, the honest null result
+
+# Tier 3
+python make_tier3_pareto.py       # reserve vs arbitrage frontier (perfect foresight)
+python make_tier3_sensitivity.py  # the same frontier under a realistic forecast
+python make_tier3_value.py        # DC break-even, the punchline (uses the sensitivity csv above)
+python make_tier3_stage2_sweep.py # what the reserve buys inside the frequency model
+python make_tier3_stage3.py       # the supervisor event timeline
+python make_tier3_overfreq.py     # symmetric over-frequency containment
+python make_tier3_speed.py        # response speed as a second axis
+python make_tier3_surface.py      # nadir over reserve by speed
 ```
 
 Run the tests:

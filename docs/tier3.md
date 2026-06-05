@@ -200,9 +200,11 @@ GBP 5,369 of perfect-foresight arbitrage over the 60 days, while that same 500 k
 NESO's Dynamic Containment earns the DC availability price times the 1440 hours, so the
 break-even DC price is about GBP 7.5/MW/h (`make_tier3_value.py`, `plots/tier3_value.png`). DC
 has cleared roughly GBP 5 to GBP 15/MW/h in its busy years and lower since the market
-saturated, so against perfect foresight this is a price-dependent call. The sensitivity result
-sharpens it: under a realistic forecast the reserve is nearly free (about -GBP 130 here), so
-the DC revenue is almost pure profit and providing response is worth it across essentially the
-whole historical range. Caveat: this assumes the capacity wins DC availability for the whole
-period; DC is auction cleared in 4-hour EFA blocks, so the figure is an illustrative upper
-bound, not guaranteed income.
+saturated, so against perfect foresight this is a price-dependent call. Under the simple
+realistic forecast the modelled opportunity cost of the reserve is near zero (about -GBP 130,
+the reserve barely changes realistic profit), so in this comparison the DC revenue dominates
+the modelled opportunity cost. Caveats: 500 kW is below the 1 MW minimum DC offer, so it stands
+for part of an aggregated fleet or an illustrative scaling, not a standalone bid; and DC is
+auction cleared in 4-hour EFA blocks with eligibility, bidding, clearing, metering,
+state-of-charge, and performance rules, so this is an upper bound on the modelled opportunity
+cost, not realisable income.

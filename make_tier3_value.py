@@ -1,4 +1,5 @@
 # Net value: DC availability revenue on the reserved 500 kW against the arbitrage it costs.
+# 500 kW is below the 1 MW minimum DC offer, so treat it as part of an aggregated fleet.
 import os
 
 import numpy as np
@@ -56,11 +57,11 @@ ax.axvline(breakeven, ls=":", color="purple", lw=1.1, alpha=0.7,
            label=f"break-even {breakeven:.1f} GBP/MW/h (perfect foresight)")
 ax.plot(prices, net_perfect, lw=1.9, color="#1f6feb", label="net value vs perfect foresight cost")
 ax.plot(prices, net_realistic, lw=1.9, color="#2ca02c",
-        label="net value vs realistic forecast cost (reserve nearly free)")
+        label="net value vs simple-forecast cost (near zero opportunity cost)")
 ax.set_xlabel("DC availability price (GBP/MW/h)")
 ax.set_ylabel("Net value over 60 days (GBP)")
 ax.set_title("Tier 3 net value: DC revenue on 500 kW reserved minus arbitrage forgone\n"
-             "price-dependent against perfect foresight, almost pure profit for a real operator")
+             "price-dependent vs perfect foresight; low opportunity cost under the simple forecast")
 ax.legend(loc="upper left", fontsize=8.5)
 ax.grid(alpha=0.3)
 fig.tight_layout()
@@ -68,7 +69,7 @@ fig.savefig(os.path.join(PLOTS, "tier3_value.png"), dpi=150)
 plt.close(fig)
 
 print(f"arbitrage forgone reserving 500 kW, perfect foresight: GBP {cost_perfect:,.0f}")
-print(f"arbitrage forgone, realistic forecast:                 GBP {cost_realistic:,.0f} (nearly free)")
+print(f"arbitrage forgone, simple forecast:                    GBP {cost_realistic:,.0f} (near zero opportunity cost)")
 print(f"break-even DC price vs perfect foresight:              {breakeven:.2f} GBP/MW/h")
 for P in (5, 10, 15):
     print(f"  DC {P:2d} GBP/MW/h -> revenue GBP {RESERVE_MW * P * HOURS:6,.0f}, "
