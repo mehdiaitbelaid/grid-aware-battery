@@ -55,16 +55,18 @@ inventory guardrail.
 
 ## Result
 - Perfect foresight: GBP 16,176 over 60 days.
-- MPC with simple realistic forecasts: GBP 3,056 (persistence) to GBP 4,672 (weekday+hour
+- MPC with simple realistic forecasts: GBP 3,056 (persistence) to GBP 4,748 (weekday+hour
   fixed effects), about 19 to 29% of perfect foresight. Price uncertainty still destroys most
   of the achievable arbitrage value on this dataset.
 - Day-of-week structure helps, but only as fixed effects, not buckets. The naive version,
   averaging the same hour-of-week over prior weeks (`same_hour_of_week_average`), gives GBP
   2,869, 17.7% of perfect, below the same-hour mean, because 168 weekly buckets leave few
   samples each. Fitting additive hour-of-day and day-of-week effects instead
-  (`weekday_hour_average`, every past sample feeds each effect) lifts it to GBP 4,672, 28.9%,
-  the best realistic forecast here and above the 24.3% same-hour mean. The lesson is sample
-  efficiency: the weekly structure is real, but you cannot spend the data on sparse buckets.
+  (`weekday_hour_average`, every past sample feeds each effect) lifts it to GBP 4,748, 29.4%,
+  the best realistic forecast here and above the 24.3% same-hour mean. It falls back to the
+  same-hour mean for the first two days, before there are enough weeks to fit a weekday effect.
+  The lesson is sample efficiency: the weekly structure is real, but you cannot spend the data on
+  sparse buckets.
 - Bonus, the value of forecast quality: a synthetic forecast (true prices plus zero-mean
   Gaussian noise that grows with lead time) gives a smooth profit-versus-error curve,
   100% at zero noise falling to about 20% at sigma = 80 GBP/MWh. The simple forecasts sit

@@ -214,18 +214,21 @@ finding that a battery helps the dip far more than the slope.
 ## Is it worth it? Net value
 Stage 1 priced the cost of being available; this prices the revenue, using the DC availability
 price that ships in the dataset (`ancillary_availability_gbp_per_mw_per_h`) instead of a hand
-cited number. Reserving 500 kW costs GBP 5,369 of perfect-foresight arbitrage over the 60 days,
-so the break-even DC price is GBP 7.46/MW/h. The dataset's availability price averages GBP
-8.06/MW/h (range 1.00 to 16.17), above the break-even, so holding the 500 kW as DC reserve clears
-GBP +431 over the 60 days against the perfect-foresight cost, and GBP +5,929 against the
-realistic-forecast cost of GBP -130 (`make_tier3_value.py`, `plots/tier3_value.png`,
-`results/tier3_value.csv`). On this data it pays, not "it depends". Caveats: 500 kW is below the
-1 MW minimum DC offer, so read it as a share of an aggregated fleet, not a standalone bid; DC is
-auction cleared in 4-hour EFA blocks with eligibility, bidding, clearing, metering,
-state-of-charge, and performance rules, so this is an upper bound, not realisable income; and the
-revenue assumes the reserve clears at the availability price every hour. The dataset also carries
-an `imbalance_price_gbp_per_mwh` series, which a fuller model would use to value the energy
-deviation during an event; I did not stack it.
+cited number. The availability price averages GBP 8.06/MW/h (range 1.00 to 16.17), above the GBP
+7.46/MW/h break-even, so the 500 kW earns GBP 5,800 over the 60 days. Against the perfect-foresight
+cost of reserving (GBP 5,369, the upper bound on the arbitrage given up), that nets GBP +431. I
+lead with this number because it holds even against the most arbitrage you could ever lose to
+reserving, on a single basis. Under a realistic forecast the reserve costs about nothing: the raw
+sensitivity value is GBP -130, which the Stage 1 sensitivity flags as within forecast noise, so I
+floor it at zero rather than bank it as a gain. On that basis the GBP 5,800 is essentially all net.
+Either way it pays (`make_tier3_value.py`, `plots/tier3_value.png`, `results/tier3_value.csv`).
+Caveats: 500 kW is below the 1 MW minimum DC offer, so read it as a share of an aggregated fleet,
+not a standalone bid; DC is auction cleared in 4-hour EFA blocks with eligibility, bidding,
+clearing, metering, state-of-charge, and performance rules, so this is an upper bound, not
+realisable income; the revenue assumes the reserve clears at the availability price every hour; and
+the perfect-foresight cost and the realistic cost sit on different arbitrage baselines, which is why
+I headline the single-basis +431. The dataset also carries an `imbalance_price_gbp_per_mwh` series,
+which a fuller model would use to value the energy deviation during an event; I did not stack it.
 
 ## Degradation sensitivity
 The net value above ignores battery wear. Cycling a battery consumes cycle life, so a real

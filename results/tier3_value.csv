@@ -1,2 +1,2 @@
-dc_mean_price_gbp_per_mw_h,dc_revenue_gbp,arbitrage_cost_perfect_gbp,arbitrage_cost_realistic_gbp,breakeven_perfect_gbp_per_mw_h,net_vs_perfect_gbp,net_vs_realistic_gbp
-8.06,5800.0,5369.0,-130.0,7.46,431.0,5929.0
+dc_mean_price_gbp_per_mw_h,dc_revenue_gbp,arbitrage_cost_perfect_gbp,arbitrage_cost_realistic_raw_gbp,arbitrage_cost_realistic_floored_gbp,breakeven_perfect_gbp_per_mw_h,net_vs_perfect_gbp,net_realistic_gbp
+8.06,5800.0,5369.0,-130.0,0.0,7.46,431.0,5800.0

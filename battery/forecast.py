@@ -35,7 +35,7 @@ def weekday_hour_average(p_da, h: int, horizon: int = 24):
     # every past sample, not sparse weekly buckets, so it is the efficient way to use weekly
     # structure. Leakage-free: only p_da[:h] is read.
     if h < 48:
-        return np.full(horizon, float(np.mean(p_da[:h])) if h > 0 else 0.0)
+        return same_hour_average(p_da, h, horizon)   # too few weeks for a weekday effect; use the hour-of-day mean
     past = p_da[:h]
     idx = np.arange(h)
     hod = idx % 24

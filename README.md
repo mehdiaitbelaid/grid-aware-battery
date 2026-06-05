@@ -88,10 +88,11 @@ beyond reserved power (`plots/tier3_speed.png`), and sweeping reserve and speed 
 the nadir surface, where you need both (`plots/tier3_surface.png`).
 
 I also priced whether it pays, using the DC availability price in the dataset
-(`ancillary_availability_gbp_per_mw_per_h`, mean GBP 8.06/MW/h). The break-even is GBP 7.46/MW/h,
-so the reserve clears GBP +431 over 60 days against perfect foresight and GBP +5,929 against the
-realistic forecast (`plots/tier3_value.png`). On this data it pays. The 500 kW stands for part of
-an aggregated fleet, since DC offers are at least 1 MW.
+(`ancillary_availability_gbp_per_mw_per_h`, mean GBP 8.06/MW/h, above the GBP 7.46/MW/h break-even).
+The 500 kW earns GBP 5,800 over 60 days, which nets GBP +431 against the perfect-foresight cost of
+reserving, and is almost all net under a realistic forecast where the reserve costs about nothing
+(`plots/tier3_value.png`). On this data it pays. The 500 kW stands for part of an aggregated fleet,
+since DC offers are at least 1 MW.
 
 A degradation sensitivity prices battery wear as a throughput cost and sweeps it: at a central
 GBP 10 per MWh the break even falls from GBP 7.46 to GBP 6.65/MW/h, because arbitrage cycles
