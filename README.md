@@ -84,6 +84,10 @@ surplus (`plots/tier3_overfreq.png`), a ramp-rate sweep shows response speed is 
 beyond reserved power (`plots/tier3_speed.png`), and sweeping reserve and speed together maps
 the nadir surface, where you need both (`plots/tier3_surface.png`).
 
+I also priced whether it pays: a net-value run compares the DC revenue on the reserved
+capacity against the arbitrage it costs (`plots/tier3_value.png`), giving a break-even of
+about GBP 7.5/MW/h against perfect foresight and near pure profit for a real operator.
+
 Regenerate the results:
 
 ```
@@ -97,6 +101,7 @@ python make_tier3_stage3.py
 python make_tier3_overfreq.py
 python make_tier3_speed.py
 python make_tier3_surface.py
+python make_tier3_value.py
 ```
 
 Run the tests:
