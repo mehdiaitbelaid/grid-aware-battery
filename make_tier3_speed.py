@@ -58,8 +58,8 @@ ax.plot(xr, yr, "o-", color="#d29922", lw=1.9, label="nadir vs ramp rate")
 ax.set_xscale("log")
 ax.set_xlabel("Fleet ramp rate (MW/s, log scale)")
 ax.set_ylabel("Nadir (Hz)")
-ax.set_title("Response speed, the third axis: a faster fleet ramp lifts the nadir more\n"
-             "500 MW reserve on the 1800 MW trip; a slow ramp arrives too late to help the dip")
+ax.set_title("Nadir vs fleet ramp rate\n"
+             "500 MW reserve, 1800 MW trip")
 ax.legend(loc="lower right", fontsize=8.5)
 ax.grid(alpha=0.3, which="both")
 fig.tight_layout()

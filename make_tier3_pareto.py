@@ -40,8 +40,8 @@ fig, ax = plt.subplots(figsize=(8.5, 5.2))
 ax.plot(df["reserve_kw"], df["profit_gbp"], "o-", lw=1.9, color="#1f6feb")
 ax.set_xlabel("Frequency-response power reserved (kW)")
 ax.set_ylabel("Arbitrage profit over 60 days (GBP)")
-ax.set_title("Tier 3: the price of reliability\n"
-             "arbitrage profit vs reserved response capacity (30 min sustain, perfect foresight)")
+ax.set_title("Tier 3: arbitrage profit vs reserved response capacity\n"
+             "30 min sustain, perfect foresight")
 ax.grid(alpha=0.3)
 for _, r in df.iterrows():
     if r.reserve_pct in (0, 50, 100):

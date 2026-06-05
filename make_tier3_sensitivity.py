@@ -44,7 +44,7 @@ ax1.plot(df["reserve_kw"], df["perfect_gbp"], "o-", lw=1.9, color="#1f6feb", lab
 ax1.plot(df["reserve_kw"], df["realistic_gbp"], "s-", lw=1.9, color="#d29922", label="realistic forecast (MPC)")
 ax1.set_xlabel("Reserved response power (kW)")
 ax1.set_ylabel("Arbitrage profit over 60 days (GBP)")
-ax1.set_title("Absolute profit: forecast error is the big vertical gap")
+ax1.set_title("Absolute arbitrage profit vs reserved power")
 ax1.legend()
 ax1.grid(alpha=0.3)
 ax2.plot(df["reserve_kw"], df["perfect_pct"], "o-", lw=1.9, color="#1f6feb", label="perfect foresight")

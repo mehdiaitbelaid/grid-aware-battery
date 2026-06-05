@@ -51,8 +51,7 @@ ax2.plot(df.response_hz, df.peak_mw, "s--", color="#d29922", lw=1.9, label="peak
 ax1.set_xlabel("Supervisor response threshold (Hz)")
 ax1.set_ylabel("Nadir (Hz)", color="#1f6feb")
 ax2.set_ylabel("Peak response (MW)", color="#d29922")
-ax1.set_title("Tier 3: supervisor threshold sweep (1800 MW trip)\n"
-              "below the natural dip the reserve never deploys; above it a higher threshold deploys sooner, no chatter")
+ax1.set_title("Tier 3: nadir and peak response vs supervisor threshold (1800 MW trip)")
 lines = ax1.get_lines() + ax2.get_lines()
 ax1.legend(lines, [ln.get_label() for ln in lines], loc="center right", fontsize=9)
 ax1.grid(alpha=0.3)

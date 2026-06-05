@@ -80,8 +80,8 @@ ax.axhline(ps / pf * 100, ls="--", color="tab:gray", lw=1.3,
            label=f"persistence ({ps / pf * 100:.0f}%)")
 ax.set_xlabel("forecast noise at 1 h ahead, sigma (GBP/MWh), growing with lead time")
 ax.set_ylabel("MPC profit (% of perfect foresight)")
-ax.set_title("Tier 2 bonus: the value of forecast quality\n"
-             "profit falls smoothly as forecast error grows; the simple forecasts sit at the noisy end")
+ax.set_title("Tier 2: MPC profit vs forecast noise\n"
+             "synthetic forecast (truth plus growing noise); simple forecasts marked")
 ax.set_ylim(0, 105)
 ax.grid(alpha=0.3)
 ax.legend(loc="upper right", fontsize=9)

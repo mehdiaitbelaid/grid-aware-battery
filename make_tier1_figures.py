@@ -34,7 +34,7 @@ ax.axvline(30.0, ls=":", color="purple", lw=1.2, alpha=0.7, label="30 s deadline
 ax.set_xlim(-3, 50)
 ax.set_xlabel("Time since trip (s)")
 ax.set_ylabel("Frequency (Hz)")
-ax.set_title("Tier 1: secondary control (AGC) returns frequency within +/-0.01 Hz after a 1320 MW trip\n"
+ax.set_title("Tier 1: frequency after a 1320 MW trip, droop only vs droop plus AGC\n"
              f"GB high-wind mix: H_sys = {m['H_sys_s']:.2f} s, Ki = {m['Ki']:.2f}, Kp = {m['Kp']:.2f}")
 ax.legend(loc="lower right", fontsize=8.5)
 ax.grid(alpha=0.3)

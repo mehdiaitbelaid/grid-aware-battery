@@ -61,8 +61,7 @@ ax1.axhline(49.8, ls=":", color="red", lw=0.9)
 ax1.plot(tt, f, color="black", lw=1.6)
 ax1.set_ylabel("Frequency (Hz)")
 ax1.set_xlim(-10, 45)
-ax1.set_title("Tier 3 Stage 3: the supervisor switching the battery between arbitrage and response\n"
-              "1800 MW trip; the battery drops arbitrage, supports the grid, then returns")
+ax1.set_title("Tier 3 Stage 3: supervisor mode, frequency, and fleet energy (1800 MW trip)")
 handles = [Patch(color=COLORS[m], label=m) for m in (ARBITRAGE, RESERVE, RESPONSE, RECOVERY)]
 ax1.legend(handles=handles, loc="lower right", fontsize=8, ncol=2)
 ax1.grid(alpha=0.2)

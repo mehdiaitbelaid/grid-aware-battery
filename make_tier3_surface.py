@@ -60,8 +60,8 @@ for i in range(len(RESERVES)):
         ax.text(j, i, f"{Z[i, j]:.3f}", ha="center", va="center", color="black", fontsize=8.5)
 cbar = fig.colorbar(im)
 cbar.set_label("Nadir (Hz)")
-ax.set_title(f"Tier 3 surface: nadir over reserve x ramp rate (1800 MW trip)\n"
-             f"no battery nadir {nobatt:.3f} Hz; you need both enough reserve and enough speed")
+ax.set_title(f"Tier 3: nadir over reserve and ramp rate (1800 MW trip)\n"
+             f"no battery nadir {nobatt:.3f} Hz")
 fig.tight_layout()
 fig.savefig(os.path.join(PLOTS, "tier3_surface.png"), dpi=150)
 plt.close(fig)

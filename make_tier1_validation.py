@@ -58,8 +58,8 @@ for loss in losses:
 ax.set_xlim(-3, 60)
 ax.set_xlabel("Time since trip (s)")
 ax.set_ylabel("Frequency (Hz)")
-ax.set_title("Tier 1 robustness: AGC recovery across trip sizes\n"
-             "tuned on 1320 MW; restores 50 Hz for all, the 1800 MW case just misses 30 s")
+ax.set_title("Tier 1: AGC frequency recovery across trip sizes\n"
+             "500, 1000, 1320, 1800 MW; 30 s target marked")
 ax.legend(loc="lower right", fontsize=8.5)
 ax.grid(alpha=0.3)
 fig.tight_layout()

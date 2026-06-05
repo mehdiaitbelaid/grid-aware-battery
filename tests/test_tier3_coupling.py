@@ -71,7 +71,7 @@ def test_reserve_floor_caps_discharge_when_energy_is_low():
 
 def test_coupled_inertia_lifts_nadir_slightly():
     # Stage 3 must carry the Stage 2 synthetic inertia (attached inside run_coupled), so the
-    # supervised run sits a touch above a hypothetical inertia-free run. Guards CRITICAL 2.
+    # supervised run sits a touch above a hypothetical inertia-free run.
     system = PowerSystem(agc=flexible_fast_agc())
     fleet = FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0)
     _, f, _, _, _ = run_coupled(system, Supervisor(), fleet, arb_setpoint_mw=-150.0,

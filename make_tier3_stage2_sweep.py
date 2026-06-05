@@ -54,8 +54,7 @@ ax2.plot(dfA.fleet_mw, dfA.rocof_500ms_hz_s, "s--", color="#d29922", lw=1.9, lab
 ax1.set_xlabel("Fleet size (MW)")
 ax1.set_ylabel("Nadir (Hz)", color="#1f6feb")
 ax2.set_ylabel("RoCoF (Hz/s)", color="#d29922")
-ax1.set_title("Tier 3 Stage 2: nadir and RoCoF vs fleet size (1320 MW trip)\n"
-              "nadir (the dip) responds strongly to fleet size; RoCoF (the slope) only weakly")
+ax1.set_title("Tier 3 Stage 2: nadir and RoCoF vs fleet size (1320 MW trip)")
 lines = ax1.get_lines() + ax2.get_lines()
 ax1.legend(lines, [ln.get_label() for ln in lines], loc="center right", fontsize=9)
 ax1.grid(alpha=0.3)
@@ -88,8 +87,8 @@ for p in SEVERE:
 ax.set_xlim(-3, 60)
 ax.set_xlabel("Time since trip (s)")
 ax.set_ylabel("Frequency (Hz)")
-ax.set_title("Tier 3 Stage 2: severe 1800 MW trip, fleet rescues the dip\n"
-             "the case Tier 1 held above the floor but missed the 30 s target on")
+ax.set_title("Tier 3 Stage 2: 1800 MW trip at several fleet sizes\n"
+             "49.2 Hz floor and 30 s target marked")
 ax.legend(loc="lower right", fontsize=8.5)
 ax.grid(alpha=0.3)
 fig.tight_layout()

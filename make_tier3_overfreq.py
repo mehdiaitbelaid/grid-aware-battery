@@ -51,8 +51,8 @@ ax.plot(t - TRIP, f_fleet, lw=1.9, color="#1f6feb", label=f"500 MW fleet (zenith
 ax.set_xlim(-3, 40)
 ax.set_xlabel("Time since event (s)")
 ax.set_ylabel("Frequency (Hz)")
-ax.set_title("Over-frequency: 1320 MW generation surplus\n"
-             "the symmetric fleet absorbs and contains the rise, the mirror of the nadir case")
+ax.set_title("Over-frequency: frequency after a 1320 MW generation surplus\n"
+             "with and without the 500 MW fleet")
 ax.legend(loc="upper right", fontsize=8.5)
 ax.grid(alpha=0.3)
 fig.tight_layout()
