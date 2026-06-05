@@ -73,3 +73,40 @@ def test_round_trip_efficiency_applied_once():
     assert abs(d[1] - par.eta_ch * par.eta_dis * c[0]) < 1e-3
     expected = (prices[1] * d[1] - prices[0] * c[0]) * par.dt_h / 1000.0
     assert abs(out["profit_gbp"] - expected) < 1e-3
+
+
+def test_perfect_window_captures_nearly_all_of_perfect_foresight():
+    # the rolling machinery is sound: with true within-window prices it nearly matches the
+    # clairvoyant LP. A broken loop that captured half would still pass the one-sided ceiling check.
+    _, p = load_prices(DATA)
+    par = BatteryParams()
+    ceiling = solve_arbitrage(p, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh)["profit_gbp"]
+    mpc = run_mpc(p, par, forecast_fn=perfect_window)["profit_gbp"]
+    assert mpc >= 0.98 * ceiling                       # about 99.9% on this data
+    assert mpc <= ceiling + 1.0
+
+
+def test_mpc_loop_has_no_future_leakage():
+    # leakage through the full commit loop, not just the forecast functions: corrupting the future
+    # must not change any action committed before the corruption point.
+    _, p = load_prices(DATA)
+    p = p[:240]
+    par = BatteryParams()
+    h = 120
+    clean = run_mpc(p, par)
+    pc = p.copy()
+    pc[h:] = -1.0e6
+    corrupt = run_mpc(pc, par)
+    assert np.allclose(clean["charge_kw"][:h], corrupt["charge_kw"][:h])
+    assert np.allclose(clean["discharge_kw"][:h], corrupt["discharge_kw"][:h])
+
+
+def test_negative_prices_do_not_create_phantom_profit():
+    # with negative prices the LP may co-activate charge and discharge; that nets to zero flow, so
+    # the booked profit must equal the independent net-flow P&L (no phantom cash from the pair).
+    par = BatteryParams()
+    prices = np.array([-50.0, 100.0, -30.0, 80.0] * 6)
+    out = solve_arbitrage(prices, par, e_start=par.e0_kwh)
+    c, d = out["charge_kw"], out["discharge_kw"]
+    pnl = float(np.sum(prices * (d - c)) * par.dt_h / 1000.0)
+    assert abs(out["profit_gbp"] - pnl) < 1e-6

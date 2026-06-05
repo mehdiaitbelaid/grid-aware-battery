@@ -56,17 +56,25 @@ def test_coupled_debits_event_energy_and_holds_reserve_floor():
     assert resp                                       # the event really happened
     assert soc[resp[-1]] < soc[resp[0]]               # discharging debits the stored energy
     assert soc.min() >= floor - 1e-6                  # reserve stays deliverable throughout
+    # the SoC ledger matches the integral of net battery power, eta counted once
+    dt_h, eta = system.dt / 3600.0, 0.9381
+    e_start = max(floor, 0.5 * fleet.e_fleet_mwh)               # run_coupled's default start SoC
+    drawn = float(np.clip(p, 0.0, None).sum()) * dt_h / eta     # discharge draws extra for losses
+    added = float(np.clip(-p, 0.0, None).sum()) * dt_h * eta    # charge stores less
+    assert abs(soc[-1] - (e_start + added - drawn)) < 1e-6
 
 
 def test_reserve_floor_caps_discharge_when_energy_is_low():
     system = PowerSystem(agc=flexible_fast_agc())
     fleet = FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0)
     floor = fleet.reserve * 0.5
-    # start right at the floor: the deliverability cap must keep the response from breaching it
-    _, _, _, _, soc = run_coupled(system, Supervisor(), fleet, arb_setpoint_mw=-150.0,
-                                  loss_mw=1800.0, trip_time=20.0, duration=80.0,
-                                  e_start_mwh=floor, reserve_floor_mwh=floor)
-    assert soc.min() >= floor - 1e-6
+    # start at the floor with no pre-trip charging, so there is no headroom and the cap must block
+    # the response (with arb_setpoint=-150 the pre-charge lifted SoC and the cap never fired)
+    _, f, modes, p, soc = run_coupled(system, Supervisor(), fleet, arb_setpoint_mw=0.0,
+                                      loss_mw=1800.0, trip_time=20.0, duration=80.0,
+                                      e_start_mwh=floor, reserve_floor_mwh=floor)
+    assert soc.min() >= floor - 1e-9                       # floor never breached
+    assert float(np.clip(p, 0.0, None).max()) < 1.0       # no headroom, so the response is throttled to ~0
 
 
 def test_coupled_inertia_lifts_nadir_slightly():

@@ -76,7 +76,11 @@ is the physical realism the ramp limits and anti-windup add.
 ## Participation split (sums to 1)
 CCGT 0.45, Hydro/pumped 0.30, OCGT 0.15, Coal/biomass 0.10. Nuclear, wind, and
 interconnectors are 0. Fast flexible plant leads. Baseload nuclear and inverter-based wind
-provide no secondary response.
+provide no secondary response. This is the steady-state allocation. During ramp-up a slow unit
+cannot reach its share in time (Coal at 5%/min needs about 79 s, past the recovery window), so the
+fast units overshoot their share to cover it and the total briefly lags the command; the nominal
+split is delivered only once the slow plant finishes ramping. The total still converges to the full
+loss.
 
 ## Assumptions to cite
 - Design disturbance 1320 MW: a standard GB infeed-loss benchmark. Larger secured-loss

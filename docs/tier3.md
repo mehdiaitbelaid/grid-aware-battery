@@ -164,10 +164,13 @@ job the battery does. It is a four-mode state machine (`coupling/supervisor.py`)
 - RESPONSE (below 49.8 Hz): drop arbitrage, inject the reserved power.
 - RECOVERY (climbing back): taper the response to zero by the all-clear, then resume arbitrage.
 
-Every boundary has hysteresis: the threshold to enter a more alert state going down sits below
-the threshold to clear back coming up, so the battery cannot chatter around a line. The
+Every boundary that could chatter has hysteresis: the threshold to enter a more alert state going
+down sits below the threshold to clear back coming up. The RESPONSE to RECOVERY hand-off is
+single-sided at 49.80, but it does not chatter because the taper is 1.0 there, so the response power
+is continuous across it, and the re-arm from RECOVERY back to RESPONSE has a 50 mHz gap. The
 RECOVERY taper hands the last of the restoration back to the AGC, the fix for the Stage 2
-settle-drag.
+settle-drag. These bands are sized for clean frequency: fed a raw sensor signal with tens of mHz of
+noise the modes chatter, so a production version would low-pass the measurement first.
 
 ### The event timeline
 One severe 1800 MW trip while the battery is charging at 150 MW for arbitrage
@@ -187,17 +190,22 @@ The per-state machine fixes it and a test guards against regression.
 
 The coupled run is state-coupled both ways. It carries the Stage 2 synthetic inertia (attached as a
 passive inertia-only fleet so the supervisor still owns the droop, with no double counting) and it
-tracks the fleet state of charge, debiting the energy the response delivers and capping discharge at
-a reserve floor so the held energy cannot be spent below what sustains the reserve for 30 minutes. On
-this event the response delivers about 0.2 MWh, only 0.08% of the 250 MWh floor, so deliverability is
-never at risk: the state-of-charge panel in `plots/tier3_stage3_timeline.png` sits flat above the
-floor. The inertia is a small lever here, worth about 2 mHz of nadir, consistent with the Stage 2
-finding that a battery helps the dip far more than the slope.
+tracks the fleet state of charge, debiting the energy the response delivers and holding it above a
+reserve floor sized to sustain the reserve for 30 minutes. The floor is a hard state-of-charge guard,
+not a sustained-rate throttle. On this event the response delivers about 0.2 MWh, well under 0.1% of
+the floor, so deliverability is never at risk: the state-of-charge panel in
+`plots/tier3_stage3_timeline.png` sits flat above the floor. (The physics sizes the floor as power
+times duration; the Stage 1 LP divides by discharge efficiency, a few percent more. The difference
+never binds, since the operating SoC sits far above either.) The inertia is a small lever here, worth
+about 2 mHz of nadir and modelled as always available, consistent with the Stage 2 finding that a
+battery helps the dip far more than the slope.
 
 ### Stage 3 scope
 - I show a single under-frequency event through the supervisor. The over-frequency case is
   shown in the fleet model above (symmetric droop); the supervisor's mode logic here is the
-  low-frequency side, and a mirror high-frequency mode would complete it.
+  low-frequency side, and a mirror high-frequency mode would complete it. The over-frequency
+  mirror assumes no charge-headroom limit, so its symmetry with the nadir is exact by
+  construction rather than demonstrated under storage limits.
 - I treat the arbitrage setpoint as scheduled demand, so only the battery's deviation from
   it moves frequency, and the scheduled charging does not disturb frequency before the trip.
 - The coupled run deploys the supervised droop and the Stage 2 synthetic inertia together, and
@@ -232,7 +240,8 @@ which a fuller model would use to value the energy deviation during an event; I 
 
 ## Degradation sensitivity
 The net value above ignores battery wear. Cycling a battery consumes cycle life, so a real
-operator pays a throughput cost on every MWh moved. I add this as an optional term in the
+operator pays a throughput cost per MWh discharged, a standard cycle proxy that folds in
+charge-side wear. I add this as an optional term in the
 arbitrage objective (`solve_arbitrage(..., degradation_cost_per_mwh=...)`, default 0 so the
 baseline is unchanged) and sweep it, because the cost is uncertain. A defensible basis is the
 cell capex divided by the cycle life: at about GBP 100 to 150 per kWh and 5,000 to 10,000 full
