@@ -1,7 +1,7 @@
 [project]
 name = "grid-aware-battery"
 version = "0.1.0"
-description = "Grid-aware battery: AGC frequency control (Tier 1), rolling-horizon arbitrage MPC (Tier 2), and reserve, fleet, and supervisor coupling (Tier 3) for the Piclo challenge"
+description = "Grid-aware battery: AGC frequency control (Tier 1), rolling-horizon arbitrage MPC (Tier 2), and reserve, fleet, and supervisor coupling (Tier 3)"
 requires-python = ">=3.10"
 
 [tool.pytest.ini_options]

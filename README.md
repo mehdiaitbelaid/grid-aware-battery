@@ -1,6 +1,6 @@
 # Grid-Aware Battery Optimisation
 
-This repo is my Piclo engineering challenge submission. It covers all three tiers. Tier 1
+This repo is a personal engineering project on grid-aware battery optimisation, built across three tiers. Tier 1
 fixes the grid frequency simulator's secondary frequency restoration. Tier 2 replaces the
 battery's perfect foresight optimiser with a rolling-horizon MPC. Tier 3 couples the two
 through a reserve, a physical fleet response, and a supervisor.
