@@ -1,6 +1,6 @@
 import numpy as np
 
-from coupling import RESPONSE, Supervisor, run_coupled
+from coupling import ARBITRAGE, RESPONSE, Supervisor, run_coupled
 from gridsim.agc import flexible_fast_agc
 from gridsim.fleet import FleetResponse
 from gridsim.system import PowerSystem
@@ -86,3 +86,19 @@ def test_coupled_inertia_lifts_nadir_slightly():
                                 loss_mw=1800.0, trip_time=20.0, duration=80.0)
     assert system.fleet is None                       # run_coupled restored the system, no mutation
     assert f.min() > 49.77                            # inertia plus supervised droop holds the nadir
+
+
+def test_supervisor_does_not_worsen_over_frequency():
+    # on a generation surplus the supervisor must not stop the battery absorbing. It should be no
+    # worse than doing nothing (following the charge); the bug cancelled the charge and lifted the zenith.
+    fleet = FleetResponse(p_fleet_mw=500.0, e_fleet_mwh=1000.0)
+    kw = dict(arb_setpoint_mw=-150.0, loss_mw=-1800.0, trip_time=20.0, duration=80.0)
+    _, f_sup, _, p, _ = run_coupled(PowerSystem(agc=flexible_fast_agc()), Supervisor(), fleet, **kw)
+
+    class KeepCharging(Supervisor):
+        def update(self, f_hz):
+            return ARBITRAGE
+    _, f_nothing, _, _, _ = run_coupled(PowerSystem(agc=flexible_fast_agc()), KeepCharging(), fleet, **kw)
+
+    assert f_sup.max() <= f_nothing.max() + 1e-6      # never worse than doing nothing on a surplus
+    assert float(p.max()) <= 1e-6                     # never discharges into a surplus

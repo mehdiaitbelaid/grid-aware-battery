@@ -65,6 +65,15 @@ def solve_arbitrage(prices, params: BatteryParams = BatteryParams(),
         for t in range(1, T + 1):   # floor the planned trajectory, not the already-given start SoC
             m += e[t] >= reserve_energy_kwh
 
+    # Negative prices make simultaneous charge and discharge a degenerate optimum (a paid dump load
+    # through the round trip). Forbid it with a per-hour binary, added only when prices can go negative
+    # so the all-positive coursework dataset stays a fast LP.
+    if float(np.min(prices)) < 0.0:
+        on = [LpVariable(f"on{t}", cat="Binary") for t in range(T)]
+        for t in range(T):
+            m += pch[t] <= par.p_max_kw * on[t]
+            m += pdis[t] <= par.p_max_kw * (1 - on[t])
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")          # PuLP/CBC emits a noisy solver deprecation warning
         m.solve(PULP_CBC_CMD(msg=0))

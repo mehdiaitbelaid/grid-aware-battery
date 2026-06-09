@@ -101,12 +101,14 @@ def test_mpc_loop_has_no_future_leakage():
     assert np.allclose(clean["discharge_kw"][:h], corrupt["discharge_kw"][:h])
 
 
-def test_negative_prices_do_not_create_phantom_profit():
-    # with negative prices the LP may co-activate charge and discharge; that nets to zero flow, so
-    # the booked profit must equal the independent net-flow P&L (no phantom cash from the pair).
+def test_negative_prices_give_physical_dispatch_and_consistent_cash():
+    # negative prices used to make the LP charge and discharge at once (a paid dump through the round
+    # trip). The binary guard forbids it: each hour is charge or discharge, not both, and the booked
+    # profit still equals the independent net-flow P&L.
     par = BatteryParams()
     prices = np.array([-50.0, 100.0, -30.0, 80.0] * 6)
     out = solve_arbitrage(prices, par, e_start=par.e0_kwh)
     c, d = out["charge_kw"], out["discharge_kw"]
+    assert float((c * d).max()) < 1e-3                      # no simultaneous charge and discharge
     pnl = float(np.sum(prices * (d - c)) * par.dt_h / 1000.0)
     assert abs(out["profit_gbp"] - pnl) < 1e-6

@@ -96,3 +96,6 @@ destroyed by price uncertainty.
   energy. A more careful value function is possible.
 - Each MPC solves about 1440 small LPs via CBC subprocesses, so a full run takes tens of
   seconds. Fine for analysis, not for real-time use as written.
+- The LP forbids simultaneous charge and discharge, but only adds the per-hour binary when prices
+  go negative (this dataset is all positive, so it stays a fast LP). Negative prices would otherwise
+  let it cycle energy through the round trip to bank the payment, which is not physical dispatch.

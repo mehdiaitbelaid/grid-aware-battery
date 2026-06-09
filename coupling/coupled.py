@@ -46,7 +46,10 @@ def run_coupled(system: PowerSystem, supervisor: Supervisor, fleet: FleetRespons
             if mode == ARBITRAGE:
                 p_req = arb_setpoint_mw                 # constant stand-in for the hourly MPC dispatch
             elif mode == RESERVE:
-                p_req = max(0.0, arb_setpoint_mw)       # cancel charging and hold ready
+                # under-frequency: do not charge (hold ready); over-frequency: do not discharge,
+                # keep absorbing. Cancelling the charge on a surplus would remove load and worsen it.
+                p_req = (min(0.0, arb_setpoint_mw) if f_hz > system.f_nom
+                         else max(0.0, arb_setpoint_mw))
             elif mode == RESPONSE:
                 p_req = resp_mw
             else:                                       # RECOVERY

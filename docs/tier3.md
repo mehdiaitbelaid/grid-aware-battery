@@ -201,11 +201,13 @@ about 2 mHz of nadir and modelled as always available, consistent with the Stage
 battery helps the dip far more than the slope.
 
 ### Stage 3 scope
-- I show a single under-frequency event through the supervisor. The over-frequency case is
-  shown in the fleet model above (symmetric droop); the supervisor's mode logic here is the
-  low-frequency side, and a mirror high-frequency mode would complete it. The over-frequency
-  mirror assumes no charge-headroom limit, so its symmetry with the nadir is exact by
-  construction rather than demonstrated under storage limits.
+- I show a single under-frequency event through the supervisor. On an over-frequency surplus the
+  RESERVE state holds the battery's absorbing charge rather than cancelling it, so the supervisor
+  never makes a surplus worse, though it does not yet charge harder to actively contain it; an
+  active mirrored high-frequency mode (the symmetric droop charging into the surplus) would complete
+  that. The over-frequency containment shown in the fleet model above assumes no charge-headroom
+  limit, so its symmetry with the nadir is exact by construction rather than demonstrated under
+  storage limits.
 - I treat the arbitrage setpoint as scheduled demand, so only the battery's deviation from
   it moves frequency, and the scheduled charging does not disturb frequency before the trip.
 - The coupled run deploys the supervised droop and the Stage 2 synthetic inertia together, and
