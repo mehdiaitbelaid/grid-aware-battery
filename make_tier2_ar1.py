@@ -1,9 +1,4 @@
-"""Tier 2 add-on: AR(1)-on-residuals day-ahead forecaster vs the weekday baseline.
-
-Measures both forecasters on day-ahead arbitrage through run_mpc, reports the delta,
-estimates a representative phi, runs a strict leakage check, and recommends ship only
-if the AR(1) variant beats the weekday baseline.
-"""
+"""AR(1)-on-residuals forecaster vs the weekday baseline, measured on day-ahead arbitrage."""
 from __future__ import annotations
 
 import os
@@ -73,9 +68,10 @@ def main():
     print(f"max abs diff                : {max_abs:.3e}")
     print()
 
-    ship = ar1 > base
-    print(f"RECOMMENDATION: {'SHIP' if ship else 'DO NOT SHIP'} "
-          f"(AR(1) {'beats' if ship else 'does not beat'} weekday baseline)")
+    if ar1 > base:
+        print(f"AR(1) beats the weekday baseline by GBP {delta:,.0f}.")
+    else:
+        print(f"AR(1) does not beat the weekday baseline (GBP {delta:,.0f}).")
 
 
 if __name__ == "__main__":

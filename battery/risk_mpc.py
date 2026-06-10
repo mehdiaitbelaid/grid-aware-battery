@@ -1,28 +1,14 @@
-"""Risk-aware (CVaR) model-predictive control for the day-ahead arbitrage battery.
+"""Risk-aware (CVaR) MPC, used to test the reviewer's overtrading claim.
 
-This module tests one specific reviewer claim. In the realistic (forecast-driven) MPC runs,
-adding a fixed reserve obligation sometimes *raises* the booked day-ahead profit instead of
-lowering it. The reviewer argues this is not a real "reserve helps trading" effect but
-certainty-equivalent overtrading: a point-forecast plan commits aggressive first-hour trades
-that are sometimes wrong, and the reserve constraint accidentally tempers them. If that is the
-mechanism, a plan that prices forecast uncertainty on purpose (a CVaR plan) should capture the
-same few percent without needing any reserve constraint, and at zero reserve.
+In the realistic MPC runs, adding a fixed reserve sometimes raises the booked day-ahead profit
+instead of lowering it. The reviewer reads that as certainty-equivalent overtrading: a
+point-forecast plan makes aggressive first-hour trades that are sometimes wrong, and the reserve
+constraint happens to rein them in. If so, a plan that prices forecast uncertainty directly
+(CVaR over scenarios) should pick up the same few percent at zero reserve.
 
-The design follows the task spec exactly:
-
-  * Rolling MPC. Each hour h we look only at p_da[:h] (strictly leakage-free).
-  * We build n_scenarios horizon-length price paths = base point forecast + additive error
-    vectors sampled from the EMPIRICAL distribution of this forecaster's own past errors,
-    measured on p_da[:h] only.
-  * We solve a TWO-STAGE stochastic LP: the first-hour charge/discharge (pch0, pdis0) is shared
-    across every scenario (here-and-now), and every later hour gets its own per-scenario recourse
-    decision and per-scenario SoC trajectory, all starting from the same e_current.
-  * The objective is the CVaR at level alpha of the per-scenario profits (the worst-tail
-    average), with the standard linearization
-        eta - 1/((1-alpha)*S) * sum_s u_s ,   u_s >= eta - profit_s ,  u_s >= 0.
-  * We commit the shared first hour and book it at the ACTUAL p_da[h]. h=0: no trade.
-
-Nothing here touches existing files. Import directly:  from battery.risk_mpc import run_risk_mpc
+Each hour uses only p_da[:h]. Scenarios are the point forecast plus error vectors drawn from the
+forecaster's own past errors. The first-hour trade is shared across scenarios; later hours get
+per-scenario recourse. The objective is CVaR at level alpha.
 """
 
 from __future__ import annotations
@@ -39,14 +25,10 @@ from .forecast import weekday_hour_average
 
 
 def _past_step_errors(p_da, h, horizon, base_forecast_fn):
-    """Empirical per-step forecast errors of base_forecast_fn, measured on p_da[:h] only.
+    """Per-step forecast errors of base_forecast_fn over past origins, from p_da[:h] only.
 
-    For every past origin j where both the forecast and its realized outcome lie fully inside
-    p_da[:h], record the error vector (realized - forecast) of length `horizon`. Returns an
-    (m, horizon) array of error vectors; m is the number of usable past origins.
-
-    Leakage guard: an origin j is usable only if j + horizon <= h, so realized[j:j+horizon] is
-    entirely strictly-past data. The forecaster itself also reads only p_da[:j] by contract.
+    An origin j is usable only if j + horizon <= h, so realized[j:j+horizon] is all past data.
+    Returns an (m, horizon) array of (realized - forecast) vectors.
     """
     rows = []
     for j in range(1, max(0, h - horizon) + 1):
@@ -63,15 +45,11 @@ def _past_step_errors(p_da, h, horizon, base_forecast_fn):
 
 
 def _scenario_errors(errs, n_scenarios, horizon, rng):
-    """Turn the pool of past per-step error vectors into n_scenarios error paths.
+    """Build n_scenarios error paths from the pool of past error vectors.
 
-    Two regimes, both strictly from past data:
-      * Enough whole past error vectors -> sample n_scenarios of them with replacement. This keeps
-        the natural correlation along the lookahead (an error path that drifts high stays high).
-      * Too few (early in the series) -> fall back to per-step quantiles. Build n_scenarios paths
-        whose k-th entry is a quantile of the per-step error at lag k, spanning the spread. With
-        zero history this yields all-zero errors, so the scenarios collapse to the point forecast
-        and the stochastic LP reduces to the certainty-equivalent plan.
+    With enough whole vectors, sample them with replacement (keeps the lookahead correlation).
+    Early on, fall back to per-step quantiles; with no history the errors are zero, so the plan
+    reduces to the certainty-equivalent one.
     """
     m = errs.shape[0]
     if m == 0:
@@ -99,18 +77,17 @@ def _solve_two_stage_cvar(scenarios, par, e_current, alpha, terminal_prices):
     dt = par.dt_h
     m = LpProblem("risk_mpc", LpMaximize)
 
-    # First-stage (here-and-now), shared across every scenario.
+    # first-stage trade, shared across scenarios
     pch0 = LpVariable("pch0", 0, par.p_max_kw)
     pdis0 = LpVariable("pdis0", 0, par.p_max_kw)
 
-    # CVaR auxiliaries.
-    eta = LpVariable("eta")                                   # free: the VaR level
+    eta = LpVariable("eta")                                   # the VaR level
     u = [LpVariable(f"u{s}", lowBound=0) for s in range(S)]   # tail shortfalls
 
     profit_s = []
     for s in range(S):
         price = scenarios[s]
-        # Second-stage recourse: per-scenario charge/discharge for hours 1..H-1 plus the SoC path.
+        # per-scenario recourse for hours 1..H-1
         pch = [pch0] + [LpVariable(f"c{s}_{t}", 0, par.p_max_kw) for t in range(1, H)]
         pdis = [pdis0] + [LpVariable(f"d{s}_{t}", 0, par.p_max_kw) for t in range(1, H)]
         e = [LpVariable(f"E{s}_{t}", 0, par.e_cap_kwh) for t in range(H + 1)]
@@ -119,8 +96,7 @@ def _solve_two_stage_cvar(scenarios, par, e_current, alpha, terminal_prices):
         for t in range(H):
             m += e[t + 1] == e[t] + par.eta_ch * pch[t] * dt - pdis[t] / par.eta_dis * dt
 
-        # Arbitrage value of this scenario plus a terminal value on leftover SoC, so the planner
-        # is not pushed to dump the battery at the horizon edge (same device the CE-MPC uses).
+        # terminal value on leftover SoC so the plan doesn't dump the pack at the horizon edge
         arb = lpSum(price[t] * (pdis[t] - pch[t]) * dt / 1000.0 for t in range(H))
         arb = arb + terminal_prices[s] * e[H] / 1000.0
         profit_s.append(arb)
@@ -166,13 +142,10 @@ def run_risk_mpc(p_da, params: BatteryParams = BatteryParams(), horizon: int = 2
             base = np.asarray(p_da[h:h + 1], dtype=float)
         H = base.size
 
-        # Empirical error paths for this forecaster, from strictly-past data only.
         errs = _past_step_errors(p_da, h, H, base_forecast_fn)
         err_paths = _scenario_errors(errs, n_scenarios, H, rng)
         scenarios = base[None, :] + err_paths               # (S, H) price paths
-
-        # Per-scenario terminal price: mean of that scenario's own path (matches CE-MPC's terminal).
-        terminal_prices = scenarios.mean(axis=1)
+        terminal_prices = scenarios.mean(axis=1)            # per-scenario terminal price
 
         c0, d0 = _solve_two_stage_cvar(scenarios, par, e, alpha, terminal_prices)
 
@@ -182,6 +155,6 @@ def run_risk_mpc(p_da, params: BatteryParams = BatteryParams(), horizon: int = 2
         e = min(max(e, 0.0), par.e_cap_kwh)
         soc[h + 1] = e
 
-    # Book the committed first-hour trades at the ACTUAL day-ahead prices. Zero reserve revenue.
+    # book the committed first-hour trades at actual prices; no reserve revenue
     profit = float(np.sum(p_da * (discharge - charge) * dt / 1000.0))
     return {"charge_kw": charge, "discharge_kw": discharge, "soc_kwh": soc, "profit_gbp": profit}

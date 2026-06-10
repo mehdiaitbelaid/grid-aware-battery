@@ -1,14 +1,7 @@
-"""Imbalance tier driver.
+"""Imbalance: the perfect-hindsight ceiling and what a persistence venue choice captures.
 
-Prints, in order:
-  1. bestof_bound          perfect-hindsight CEILING (labeled, not achievable)
-  2. da_only_realistic     run_mpc on the weekday_hour_average forecast, settled at day-ahead
-  3. twoprice_realistic    same dispatch, per-hour venue choice via leakage-free persistence
-  4. capture               twoprice_realistic minus da_only_realistic
-
-The bound ships either way as a labeled ceiling. The two-price run ships ONLY if it clearly
-beats the da-only run; otherwise it is reported honestly as tried, captured ~X, not worth
-shipping.
+Prints the best-of ceiling, the day-ahead-only realistic profit, the two-price realistic profit,
+and the difference.
 """
 
 from __future__ import annotations
@@ -35,17 +28,15 @@ def main() -> None:
     print(f"twoprice_realistic (persistence venue choice):            GBP {twoprice:,.0f}")
     print(f"realistic_capture  (twoprice - da_only):                  GBP {capture:,.0f}")
 
-    # Ship the two-price stack only if it clearly beats da-only. "Clearly" here means a
-    # positive capture that is material against the da-only base, not a rounding wobble.
-    clearly_beats = capture > 0 and capture >= 0.01 * abs(da_only)
+    # only bank the two-price stack if it clears day-ahead by more than noise
+    material = capture > 0 and capture >= 0.01 * abs(da_only)
     print()
-    if clearly_beats:
-        print(f"RECOMMENDATION: ship_realistic=true. The two-price stack captures "
-              f"GBP {capture:,.0f} over da-only, a real gain worth shipping.")
+    if material:
+        print(f"Two-price venue choice adds GBP {capture:,.0f} over day-ahead only.")
     else:
-        print(f"RECOMMENDATION: ship_realistic=false. Tried the two-price stack, captured "
-              f"GBP {capture:,.0f} over da-only, not worth shipping.")
-        print("The bestof_bound still ships as a labeled perfect-hindsight ceiling.")
+        print(f"Two-price venue choice adds only GBP {capture:,.0f} over day-ahead only, "
+              f"inside the noise.")
+        print("The ceiling stands as a perfect-hindsight upper bound.")
 
 
 if __name__ == "__main__":

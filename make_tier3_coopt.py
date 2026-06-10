@@ -1,8 +1,6 @@
-# Tier 3 co-optimized reserve: the standby DC reserve r is a decision variable per EFA block, chosen
-# jointly with day-ahead arbitrage in a single LP, instead of holding a flat 500 kW. Two tables:
-#   perfect foresight  - fixed-500 stack vs co-opt (EFA blocks) vs co-opt (hourly blocks)
-#   realistic forecast - fixed-500 realistic stack vs co-opt EFA realistic (weekday_hour_average)
-# weekday_hour_average is the forecaster throughout the realistic runs.
+# Tier 3 co-optimized reserve: the DC reserve is a per-EFA-block decision in the same LP as
+# arbitrage, instead of a flat 500 kW. Prints a perfect-foresight and a realistic table and saves
+# plots/tier3_coopt.png. weekday_hour_average is the forecaster for the realistic runs.
 import os
 import warnings
 
@@ -35,7 +33,7 @@ def _forecast(p, h, hzn):
     return weekday_hour_average(p, h, hzn)
 
 
-# perfect foresight -----------------------------------------------------------------------------
+# perfect foresight
 fixed_arb_perfect = solve_arbitrage(
     p_da, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh,
     reserve_power_kw=RESERVE_KW,
@@ -45,7 +43,7 @@ fixed_perfect = fixed_arb_perfect + dc_fixed
 coopt_efa = solve_coopt(p_da, avail, par, block_size=EFA_BLOCK)
 coopt_hourly = solve_coopt(p_da, avail, par, block_size=1)
 
-# realistic forecast ----------------------------------------------------------------------------
+# realistic forecast
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     fixed_real_mpc = run_mpc(p_da, par, horizon=24, forecast_fn=_forecast,
@@ -79,7 +77,7 @@ print()
 print(f"co-opt EFA mean reserve: perfect {coopt_efa['reserve_kw'].mean():.0f} kW, "
       f"realistic {coopt_efa_real['reserve_kw'].mean():.0f} kW")
 
-# plot ------------------------------------------------------------------------------------------
+# plot
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
 
 hours = np.arange(len(avail))
@@ -92,7 +90,7 @@ l3, = axp.plot(hours, avail, color="#999999", lw=0.6, alpha=0.7, label="DC avail
 ax1.set_xlabel("hour")
 ax1.set_ylabel("reserve held (kW)")
 axp.set_ylabel("DC availability price (GBP/MW/h)")
-ax1.set_title("Co-optimized reserve level and DC availability price")
+ax1.set_title("Reserve held vs DC availability price")
 ax1.set_ylim(0, par.p_max_kw * 1.05)
 ax1.legend(handles=[l1, l2, l3], loc="upper right", fontsize=8)
 ax1.grid(alpha=0.3)
@@ -110,7 +108,7 @@ for xi, (a, d) in enumerate(zip(arbs, dcs)):
 ax2.set_xticks(x)
 ax2.set_xticklabels(labels, fontsize=8)
 ax2.set_ylabel("value over 60 days (GBP)")
-ax2.set_title("Value stack: fixed vs co-optimized reserve (arb + DC)")
+ax2.set_title("Value over 60 days: fixed vs co-optimized reserve")
 ax2.legend(loc="upper right", fontsize=8.5)
 ax2.grid(axis="y", alpha=0.3)
 

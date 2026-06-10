@@ -6,13 +6,8 @@ from .forecast import weekday_hour_average
 
 
 def _fixed_effects(past):
-    """Fit the weekday_hour_average fixed effects on a strictly past window.
-
-    Returns the global mean g, the 24 hour-of-day effects, and the 7 day-of-week
-    effects. The fitted value for any absolute index t is
-        g + he[t % 24] + de[(t // 24) % 7]
-    which matches weekday_hour_average exactly.
-    """
+    """Global mean, 24 hour-of-day effects, 7 day-of-week effects, fit on `past`.
+    Fitted value at index t is g + he[t % 24] + de[(t // 24) % 7]."""
     h = len(past)
     idx = np.arange(h)
     hod = idx % 24
@@ -24,21 +19,12 @@ def _fixed_effects(past):
 
 
 def weekday_hour_ar1(series, h: int, horizon: int = 24, phi=None):
-    """AR(1)-on-residuals forecaster.
+    """weekday_hour_average plus an AR(1) carry on its residuals.
 
-    Start from the weekday_hour_average fixed effects (global mean + hour-of-day
-    effect + day-of-week effect) fit on series[:h]. Compute the residual series on
-    past data (actual minus fitted). Estimate phi as the lag-1 autocorrelation of
-    that residual series, clipped to [0, 0.95], unless phi is supplied.
-
-    Forecast for hour h+k (k = 0..horizon-1):
-        fitted(h+k) + phi * residual(h+k-24)
-    using the most recent same-hour residual at lag 24. Because h+k-24 < h for every
-    k in a 24-step horizon, that residual is always observable.
-
-    For h < 72 there are fewer than three full days, too little to estimate a stable
-    AR(1) term, so fall back to weekday_hour_average. Strictly leakage-free: only
-    series[:h] is read.
+    Fit the fixed effects on series[:h], take the residual at the same hour 24h back, and add
+    phi times it. phi is the lag-1 autocorrelation of the past residuals, clipped to [0, 0.95].
+    Falls back to weekday_hour_average for h < 72 (too few days for a stable phi). Reads only
+    series[:h].
     """
     series = np.asarray(series, dtype=float)
 

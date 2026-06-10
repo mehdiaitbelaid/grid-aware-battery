@@ -16,8 +16,7 @@ def _data():
 
 
 def test_coopt_efa_beats_fixed_stack():
-    # Letting the reserve float per EFA block can only do at least as well as holding a flat 500 kW,
-    # because the fixed-500 stack is a feasible point of the co-opt LP plus a constant DC payment.
+    # fixed 500 kW is a feasible point of the co-opt LP, so co-opt can't do worse
     par = BatteryParams()
     p_da, avail = _data()
     fixed_arb = solve_arbitrage(p_da, par, e_start=par.e0_kwh, e_end_min=par.e0_kwh,
@@ -29,8 +28,7 @@ def test_coopt_efa_beats_fixed_stack():
 
 
 def test_reserve_genuinely_withheld():
-    # At the optimum the net dispatch leaves the booked reserve as upward headroom for every hour,
-    # so the reserve is really set aside and not double counted against the arbitrage power.
+    # net dispatch must leave the booked reserve as headroom; guards against double-counting
     par = BatteryParams()
     p_da, avail = _data()
     out = solve_coopt(p_da, avail, par, block_size=4)
@@ -39,8 +37,7 @@ def test_reserve_genuinely_withheld():
 
 
 def test_coopt_efa_beats_pure_arbitrage():
-    # Stacking the standby DC payment on top of arbitrage can only raise total value above pure
-    # day-ahead arbitrage with no reserve, since reserve revenue is non-negative.
+    # DC revenue is non-negative, so co-opt >= pure arbitrage
     par = BatteryParams()
     p_da, avail = _data()
     pure_arb = solve_arbitrage(p_da, par)["profit_gbp"]

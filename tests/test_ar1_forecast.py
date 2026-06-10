@@ -1,5 +1,4 @@
-"""Standalone tests for the AR(1)-on-residuals forecaster. Import directly from the
-new module path so battery/__init__.py does not need touching."""
+"""Tests for the AR(1)-on-residuals forecaster."""
 from __future__ import annotations
 
 import os
@@ -45,7 +44,7 @@ def test_phi_zero_reduces_to_weekday_average():
 
 
 def test_only_past_is_read():
-    # Replace the entire future with NaN; a leakage-free forecaster must still return finite values.
+    # NaN out the future; a leakage-free forecaster still returns finite values
     p_da = _p_da()
     h = 200
     bad = p_da.copy()

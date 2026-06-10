@@ -16,11 +16,8 @@ def solve_coopt(p_da, avail, params: BatteryParams = BatteryParams(),
                 block_size: int = 4, terminal_price: float | None = None) -> dict:
     """Co-optimize day-ahead arbitrage and a standby DC reserve over the whole horizon.
 
-    The reserve r is a decision variable, one per block of `block_size` consecutive
-    hours, applied to every hour in that block. Arbitrage net dispatch must leave
-    r of upward power headroom and the stored energy must always cover the reserve's
-    half-hour delivery. The single LP picks how much capacity to sell as reserve and
-    how much to trade against the spread, jointly.
+    The reserve r is one decision variable per block of `block_size` hours. Net dispatch must
+    leave r of upward headroom and the stored energy must cover r for half an hour.
     """
     par = params
     p_da = np.asarray(p_da, dtype=float)
@@ -64,9 +61,8 @@ def solve_coopt(p_da, avail, params: BatteryParams = BatteryParams(),
         m.solve(PULP_CBC_CMD(msg=0))
     assert LpStatus[m.status] == "Optimal", f"LP not optimal: {LpStatus[m.status]}"
 
-    # CBC returns values with sub-tolerance residuals (order 1e-5) at binding constraints.
-    # Snap to 1e-4 kW / kWh so reconstructed dispatch satisfies the headroom and energy floors
-    # to the 1e-6 test tolerance without changing any physically meaningful quantity.
+    # CBC leaves ~1e-5 residuals at binding constraints; snap to 1e-4 so the headroom and energy
+    # floors hold to the 1e-6 test tolerance. Totals are unchanged.
     charge = np.round(np.array([value(v) for v in pch]), 4)
     discharge = np.round(np.array([value(v) for v in pdis]), 4)
     soc = np.round(np.array([value(v) for v in e]), 4)
@@ -114,7 +110,7 @@ def run_coopt_mpc(p_da, avail, params: BatteryParams = BatteryParams(), horizon:
     committed_r = None        # the reserve currently committed for the active global block
 
     for h in range(T):
-        if h == 0:                                        # no price history yet: no trade, r=0
+        if h == 0:                                        # no history yet, no trade
             soc[h + 1] = e
             reserve[h] = 0.0
             continue
@@ -165,12 +161,11 @@ def run_coopt_mpc(p_da, avail, params: BatteryParams = BatteryParams(), horizon:
 
 def _solve_coopt_aligned(p_da, avail, params: BatteryParams, e_start, terminal_price,
                          block_size, global_h, committed_r) -> dict:
-    """Co-opt LP over a rolling horizon whose reserve blocks align to the GLOBAL hour index.
+    """Co-opt LP over a rolling horizon, with reserve blocks keyed to the global hour index.
 
-    Hour 0 of the horizon is global hour `global_h`. The reserve block that hour k belongs to
-    is keyed by (global_h + k)//block_size, so block boundaries land on global multiples of
-    block_size rather than on the horizon's own offset. If `committed_r` is set we are mid-block,
-    so the block containing horizon hour 0 is pinned to that value.
+    Horizon hour 0 is global hour `global_h`, so block boundaries land on global multiples of
+    block_size, not the horizon's offset. If `committed_r` is set we are mid-block and the active
+    block is pinned to it.
     """
     par = params
     p_da = np.asarray(p_da, dtype=float)
