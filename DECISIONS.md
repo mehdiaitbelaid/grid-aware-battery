@@ -22,7 +22,9 @@ synthesise sub-hourly prices or model within-hour balancing. The data is hourly,
 is the resolution the inputs actually support. Faster markets (imbalance, sub-hourly
 dispatch) are real revenue, but inventing a finer time grid would be fabricating signal that
 is not in the data. The forecast-error sweep in Tier 2 shows how much the result depends on
-price quality, which is the honest way to flag this. See `docs/tier2.md`.
+price quality, which is the honest way to flag this. The hourly imbalance price that does ship
+is priced as a perfect-hindsight ceiling in `docs/tier3.md` (GBP 27,517), where a leakage-free
+persistence policy captures almost none of it. See `docs/tier2.md` and `docs/tier3.md`.
 
 ## First-order fleet response, not a full inverter model
 The battery fleet supports frequency two ways: synthetic droop (a symmetric response that

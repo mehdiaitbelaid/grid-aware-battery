@@ -67,6 +67,12 @@ inventory guardrail.
   same-hour mean for the first two days, before there are enough weeks to fit a weekday effect.
   The lesson is sample efficiency: the weekly structure is real, but you cannot spend the data on
   sparse buckets.
+- An AR(1) term on the residuals (`weekday_hour_ar1`: the weekday and hour fixed effects, then add
+  phi times the most recent same-hour residual) lifts realistic profit by only about GBP 27, roughly
+  0.6%, over the weekday fixed-effects forecast. The fitted phi is about 0.02, so the residuals are
+  close to white noise: the fixed effects already absorb the predictable structure. The forecast lever
+  is nearly exhausted on this dataset, which carries no exogenous drivers such as wind or demand, so a
+  step change would need those, not a better time-series fit (`make_tier2_ar1.py`).
 - Bonus, the value of forecast quality: a synthetic forecast (true prices plus zero-mean
   Gaussian noise that grows with lead time) gives a smooth profit-versus-error curve,
   100% at zero noise falling to about 20% at sigma = 80 GBP/MWh. The simple forecasts sit

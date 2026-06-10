@@ -99,6 +99,15 @@ GBP 10 per MWh the break even falls from GBP 7.46 to GBP 6.65/MW/h, because arbi
 hard while the reserve sits idle, so pricing wear strengthens the response case
 (`plots/tier3_degradation.png`).
 
+I then co-optimized the reserve instead of fixing it. Making the reserved power a per-block decision
+in the same LP, rather than a flat 500 kW, lifts the 60-day stack from GBP 16,606 to 22,966 in perfect
+foresight (+38%) and from GBP 10,020 to 14,412 under a realistic forecast (+44%), because a flat
+reserve both blocks arbitrage in the few high-spread hours and under-sells availability in the idle
+ones (`battery/coopt.py`, `plots/tier3_coopt.png`). Two further extensions stay as honest negatives:
+the dataset's imbalance price gives a GBP 27,517 perfect-hindsight ceiling but a leakage-free
+persistence policy captures almost none of it, and a risk-aware CVaR MPC overcorrects rather than
+recovering the small certainty-equivalent overtrading (`battery/imbalance.py`, `battery/risk_mpc.py`).
+
 Regenerate the results:
 
 ```bash
@@ -109,6 +118,7 @@ python make_tier1_validation.py   # robustness sweep across trip sizes
 # Tier 2
 python make_tier2_figures.py      # MPC against perfect foresight, plus the forecast-error value
 python make_tier2_ablation.py     # terminal-value ablation, the honest null result
+python make_tier2_ar1.py          # AR(1)-on-residuals forecaster, a marginal gain
 
 # Tier 3
 python make_tier3_pareto.py       # reserve vs arbitrage frontier (perfect foresight)
@@ -121,6 +131,9 @@ python make_tier3_supervisor_sweep.py  # supervisor threshold sweep, a second de
 python make_tier3_overfreq.py     # symmetric over-frequency containment
 python make_tier3_speed.py        # response speed as a second axis
 python make_tier3_surface.py      # nadir over reserve by speed
+python make_tier3_coopt.py        # co-optimized reserve vs the fixed 500 kW, perfect and realistic
+python make_tier_imbalance.py     # imbalance best-of ceiling and the persistence capture
+python make_tier_riskmpc.py       # risk-aware CVaR MPC, an honest negative
 ```
 
 Run the tests:

@@ -238,7 +238,8 @@ clearing, metering, state-of-charge, and performance rules, so this is an upper 
 realisable income; the revenue assumes the reserve clears at the availability price every hour; and
 the perfect-foresight cost and the realistic cost sit on different arbitrage baselines, which is why
 I headline the single-basis +431. The dataset also carries an `imbalance_price_gbp_per_mwh` series,
-which a fuller model would use to value the energy deviation during an event; I did not stack it.
+which a fuller model would use to value the energy deviation during an event; I price it as a
+ceiling in the extensions below.
 
 ## Degradation sensitivity
 The net value above ignores battery wear. Cycling a battery consumes cycle life, so a real
@@ -266,3 +267,52 @@ a rare event, so pricing wear hits arbitrage harder than it hits the reserve. Ac
 degradation therefore strengthens the frequency-response case rather than weakening it. The
 convention is cost per MWh discharged, and like the Stage 1 frontier this uses perfect
 foresight, so it is the theoretical bound, not a realised operating cost.
+
+## Co-optimizing the reserve
+The net value above fixes the reserve at 500 kW and then prices it. That level is itself a choice,
+and the frontier I swept is one frozen setting of it. If instead the reserve `r` is a decision
+variable, one value per 4-hour EFA block, co-optimized with the arbitrage in the same LP (`avail[t]*r[t]`
+added to the objective, `pdis[t]-pch[t] <= p_max - r[t]` and `e[t] >= r[t]*0.5/eta` as constraints),
+the single problem decides how much capacity to sell as reserve and how much to trade against the
+spread, block by block. By construction it matches or beats every point on the fixed frontier, since
+each fixed level is a feasible point of it (`battery/coopt.py`, `make_tier3_coopt.py`,
+`plots/tier3_coopt.png`).
+
+| stack over 60 days | perfect foresight | realistic forecast |
+|---|---:|---:|
+| fixed 500 kW (arbitrage + DC) | GBP 16,606 | GBP 10,020 |
+| co-optimized reserve, EFA blocks | GBP 22,966 | GBP 14,412 |
+
+That is about +38% on the perfect-foresight basis and +44% under a realistic forecast, holding a mean
+of roughly 715 kW (perfect) to 909 kW (realistic) of reserve rather than a flat 500. The mechanism: a
+flat 500 kW both withholds power in the few high-spread hours where arbitrage wanted the full
+converter and under-sells availability in the many idle hours where the headroom was free anyway.
+Co-optimizing drops the reserve to zero in the peak hours and lifts it toward 1 MW in the idle ones,
+so about three quarters of the reserve revenue comes from hours the battery would have sat idle.
+
+Two honest points. The realistic gain is almost all reserve, not better trading: arbitrage actually
+falls (GBP 3,704 against the fixed 500's GBP 4,221) while DC nearly doubles to GBP 10,708, because a
+weak day-ahead forecast cannot see the spreads but the availability price is forecastable (lag-1
+autocorrelation 0.75), so the optimizer rationally tilts toward the predictable revenue. And the
+figure uses single-direction (injection) headroom, the same convention as the fixed baseline; a
+symmetric DC product, which must absorb and inject, forces the SoC into a middle band and costs about
+9% in perfect foresight. Like the rest of Stage 1 the perfect column is a theoretical bound, and the
+realistic column still assumes the reserve clears at the published availability price every block.
+
+## Imbalance stacking, and two extensions that did not pay
+The dataset's `imbalance_price_gbp_per_mwh` is a second settlement market. Letting each hour settle
+discharge at `max(day-ahead, imbalance)` and charge at `min(day-ahead, imbalance)` with perfect
+hindsight gives GBP 27,517, a +70% ceiling over the GBP 16,176 day-ahead-only optimum (`bestof_bound`
+in `battery/imbalance.py`). That is a labeled upper bound, not a strategy: the settlement choice is
+made before the imbalance price is known, and the two prices move together (correlation 0.90). A
+leakage-free first step, a persistence forecast of the spread choosing the venue each hour, captures
+only GBP 19 of that ceiling over the day-ahead-only realistic run (`run_twoprice_mpc`,
+`make_tier_imbalance.py`), so I do not bank it. The spread is real but naive persistence cannot pick
+the venue.
+
+I also tested the reviewer reading of the "realistic profit rises with reserve" anomaly as
+certainty-equivalent overtrading, replacing the point-forecast MPC with a risk-aware one (a two-stage
+stochastic CVaR plan over scenarios drawn from the forecaster's own past errors, `battery/risk_mpc.py`).
+It does not recover the lost value; at this scenario width it overcorrects, GBP 1,953 against GBP 4,753
+for the point-forecast MPC, so the diagnosis is plausible but the naive cure is worse than the disease.
+Both stay as honest negative results, not headline numbers.
